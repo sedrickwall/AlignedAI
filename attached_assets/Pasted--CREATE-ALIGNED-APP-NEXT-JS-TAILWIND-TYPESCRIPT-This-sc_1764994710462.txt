@@ -1,0 +1,310 @@
+# CREATE ALIGNED APP — NEXT.JS + TAILWIND + TYPESCRIPT
+# This script initializes the full starter structure for the "Aligned" app.
+
+echo "Initializing Aligned App..."
+
+# 1. Create Next.js app with TypeScript
+npx create-next-app@latest aligned-app --typescript --app --no-eslint --no-src-dir --import-alias "@/*"
+
+cd aligned-app
+
+# 2. Install Tailwind CSS & PostCSS
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+# 3. Configure Tailwind for app directory + design system
+cat > tailwind.config.mjs << 'EOF'
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}"
+  ],
+  theme: {
+    extend: {
+      colors: {
+        stoneBg: '#F5F5F3',
+        stoneCard: '#FFFFFF',
+        stoneSoft: '#E4E2DD',
+        accent: '#3B5BDB',
+        accentSoft: '#EDF1FF',
+        textMain: '#1F2933',
+        textMuted: '#6B7280',
+        success: '#16A34A',
+        warning: '#F59E0B'
+      },
+      borderRadius: {
+        xl: "1rem",
+        "2xl": "1.5rem"
+      },
+      boxShadow: {
+        subtle: "0 10px 30px rgba(15,23,42,0.05)"
+      }
+    }
+  },
+  plugins: []
+};
+EOF
+
+# 4. Replace global CSS with minimal stone-white theme
+cat > app/globals.css << 'EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-stoneBg text-textMain;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+EOF
+
+# 5. Create folder structure
+mkdir -p components
+mkdir -p app/(dashboard)
+
+# 6. Root layout file
+cat > app/layout.tsx << 'EOF'
+import type { ReactNode } from "react";
+import "./globals.css";
+
+export const metadata = {
+  title: "Aligned",
+  description: "Faith-based AI prioritization for multi-gifted women."
+};
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <div className="min-h-screen bg-stoneBg">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {children}
+          </div>
+        </div>
+      </body>
+    </html>
+  );
+}
+EOF
+
+# 7. Create reusable Card component
+cat > components/Card.tsx << 'EOF'
+import type { ReactNode } from "react";
+
+interface CardProps {
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}
+
+export function Card({ title, children, className = "" }: CardProps) {
+  return (
+    <section className={`bg-stoneCard border border-stoneSoft rounded-2xl shadow-subtle p-5 ${className}`}>
+      {title && (
+        <h2 className="text-lg font-semibold mb-3 text-textMain">{title}</h2>
+      )}
+      {children}
+    </section>
+  );
+}
+EOF
+
+# 8. Create Button component
+cat > components/Button.tsx << 'EOF'
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "ghost";
+  children: ReactNode;
+}
+
+export function Button({
+  variant = "primary",
+  children,
+  className = "",
+  ...props
+}: ButtonProps) {
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2";
+
+  const styles =
+    variant === "primary"
+      ? "bg-accent text-white hover:bg-blue-700 px-4 py-2"
+      : "bg-transparent text-textMain border border-stoneSoft hover:bg-stoneSoft px-3 py-1.5";
+
+  return (
+    <button className={`${base} ${styles} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}
+EOF
+
+# 9. Daily Dashboard
+cat > app/(dashboard)/DailyDashboard.tsx << 'EOF'
+import { Card } from "@/components/Card";
+import { Button } from "@/components/Button";
+
+export function DailyDashboard() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      
+      {/* LEFT SIDE */}
+      <div className="space-y-4">
+        <Card>
+          <p className="text-xs font-semibold uppercase tracking-wide text-textMuted mb-1">
+            Verse of the Day
+          </p>
+          <p className="italic text-sm text-textMain">
+            “I will instruct you and teach you in the way you should go.” — Psalm 32:8
+          </p>
+        </Card>
+
+        <Card title="Today's Alignment">
+          <div className="space-y-3">
+            
+            <div>
+              <p className="text-sm text-textMuted mb-1">How is your energy today?</p>
+              <div className="flex gap-2">
+                {["Low", "Normal", "High"].map((level) => (
+                  <Button key={level} variant="ghost" className="px-3 py-1 text-xs">
+                    {level}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Today&apos;s Big 3</p>
+              <ul className="space-y-2 text-sm">
+                <li>1. Deep Work – Bookkeeping client</li>
+                <li>2. Yoga Sculpt prep & workout</li>
+                <li>3. Theodore development time</li>
+              </ul>
+            </div>
+
+          </div>
+        </Card>
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="space-y-4">
+        <Card title="Time-Blocked Schedule">
+          <ul className="space-y-2 text-sm">
+            <li><span className="font-medium">08:00–08:30</span> — Devotion + planning</li>
+            <li><span className="font-medium">08:30–09:30</span> — Deep work</li>
+            <li><span className="font-medium">10:00–11:00</span> — Fitness / Yoga</li>
+            <li><span className="font-medium">11:00–11:30</span> — Theodore development</li>
+            <li><span className="font-medium">13:00–13:30</span> — Reset block</li>
+          </ul>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium mb-1">Feeling scattered?</p>
+              <p className="text-xs text-textMuted">
+                Take a 5-minute reset to calm your mind and realign your focus.
+              </p>
+            </div>
+            <Button className="ml-4">Reset</Button>
+          </div>
+        </Card>
+      </div>
+
+    </div>
+  );
+}
+EOF
+
+# 10. Weekly Overview
+cat > app/(dashboard)/WeeklyOverview.tsx << 'EOF'
+import { Card } from "@/components/Card";
+
+const pillars = [
+  { name: "Faith", current: 2, target: 3 },
+  { name: "Fitness", current: 3, target: 4 },
+  { name: "Business", current: 1, target: 3 },
+  { name: "Real Estate", current: 0, target: 2 },
+  { name: "Family", current: 4, target: 4 },
+  { name: "Self Care", current: 0, target: 2 }
+];
+
+function PillarBar({ current, target }: { current: number; target: number }) {
+  const percentage = Math.min(current / target, 1);
+  return (
+    <div className="w-full bg-stoneSoft/60 rounded-full h-1.5">
+      <div
+        className="bg-accent h-1.5 rounded-full"
+        style={{ width: `${percentage * 100}%` }}
+      />
+    </div>
+  );
+}
+
+export function WeeklyOverview() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Card title="This Week's Pillars">
+        <div className="space-y-3">
+          {pillars.map((p) => (
+            <div key={p.name} className="flex items-center gap-3 text-sm">
+              <div className="w-28 text-textMuted">{p.name}</div>
+              <PillarBar current={p.current} target={p.target} />
+              <div className="w-16 text-right text-xs text-textMuted">
+                {p.current}/{p.target}h
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Weekly Focus">
+        <p className="text-sm text-textMuted mb-3">
+          “This week is about consistency in key areas: fitness, bookkeeping, and Theodore development.”
+        </p>
+        <p className="text-xs uppercase tracking-wide text-textMuted mb-2">Top 5</p>
+        <ul className="space-y-1.5 text-sm">
+          <li>• Close out January books</li>
+          <li>• Film 1 real estate video</li>
+          <li>• 2× Yoga Sculpt workouts</li>
+          <li>• 3 Theodore learning blocks</li>
+          <li>• Date night</li>
+        </ul>
+      </Card>
+    </div>
+  );
+}
+EOF
+
+# 11. Home page
+cat > app/page.tsx << 'EOF'
+import { DailyDashboard } from "./(dashboard)/DailyDashboard";
+import { WeeklyOverview } from "./(dashboard)/WeeklyOverview";
+
+export default function HomePage() {
+  return (
+    <main className="space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Aligned</h1>
+          <p className="text-sm text-textMuted">
+            Live your calling with clarity, peace, and structure.
+          </p>
+        </div>
+        <div className="text-right text-xs text-textMuted">
+          <p>Today</p>
+        </div>
+      </header>
+
+      <DailyDashboard />
+      <WeeklyOverview />
+    </main>
+  );
+}
+EOF
+
+echo "-------------------------------------------"
+echo "Aligned app scaffold is ready!"
+echo "Run: npm install && npm run dev"
+echo "-------------------------------------------"
