@@ -14,6 +14,9 @@ interface DailyDashboardProps {
   onTaskUpdate: (taskId: string, title: string) => void;
   onTaskDelete: (taskId: string) => void;
   schedule: TimeBlock[];
+  onBlockAdd: (startTime: string, endTime: string, activity: string) => void;
+  onBlockUpdate: (blockId: string, startTime: string, endTime: string, activity: string) => void;
+  onBlockDelete: (blockId: string) => void;
   onReset: () => void;
 }
 
@@ -27,6 +30,9 @@ export function DailyDashboard({
   onTaskUpdate,
   onTaskDelete,
   schedule,
+  onBlockAdd,
+  onBlockUpdate,
+  onBlockDelete,
   onReset,
 }: DailyDashboardProps) {
   return (
@@ -45,7 +51,12 @@ export function DailyDashboard({
           />
         </div>
         <div className="space-y-4">
-          <ScheduleCard schedule={schedule} />
+          <ScheduleCard
+            schedule={schedule}
+            onBlockAdd={onBlockAdd}
+            onBlockUpdate={onBlockUpdate}
+            onBlockDelete={onBlockDelete}
+          />
           <ResetCard onReset={onReset} />
         </div>
       </div>

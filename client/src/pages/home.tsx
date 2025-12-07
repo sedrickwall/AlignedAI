@@ -128,6 +128,33 @@ export default function Home() {
     },
   });
 
+  const blockAddMutation = useMutation({
+    mutationFn: async ({ startTime, endTime, activity }: { startTime: string; endTime: string; activity: string }) => {
+      return apiRequest("POST", "/api/schedule", { startTime, endTime, activity });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
+  const blockUpdateMutation = useMutation({
+    mutationFn: async ({ blockId, startTime, endTime, activity }: { blockId: string; startTime: string; endTime: string; activity: string }) => {
+      return apiRequest("PATCH", `/api/schedule/${blockId}`, { startTime, endTime, activity });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
+  const blockDeleteMutation = useMutation({
+    mutationFn: async (blockId: string) => {
+      return apiRequest("DELETE", `/api/schedule/${blockId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
   const handleEnergyChange = (level: EnergyLevel) => {
     energyMutation.mutate(level);
   };
@@ -149,6 +176,18 @@ export default function Home() {
 
   const handleTaskDelete = (taskId: string) => {
     taskDeleteMutation.mutate(taskId);
+  };
+
+  const handleBlockAdd = (startTime: string, endTime: string, activity: string) => {
+    blockAddMutation.mutate({ startTime, endTime, activity });
+  };
+
+  const handleBlockUpdate = (blockId: string, startTime: string, endTime: string, activity: string) => {
+    blockUpdateMutation.mutate({ blockId, startTime, endTime, activity });
+  };
+
+  const handleBlockDelete = (blockId: string) => {
+    blockDeleteMutation.mutate(blockId);
   };
 
   const handleReset = () => {
@@ -179,6 +218,9 @@ export default function Home() {
                 onTaskUpdate={handleTaskUpdate}
                 onTaskDelete={handleTaskDelete}
                 schedule={dailyData.schedule}
+                onBlockAdd={handleBlockAdd}
+                onBlockUpdate={handleBlockUpdate}
+                onBlockDelete={handleBlockDelete}
                 onReset={handleReset}
               />
               <WeeklyOverview
