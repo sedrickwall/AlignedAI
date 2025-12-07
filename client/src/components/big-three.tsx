@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TaskDiscernmentButton } from "@/components/task-discernment";
 import type { Task } from "@shared/schema";
 import { Target, Plus, X, Pencil, Check } from "lucide-react";
 
@@ -126,6 +127,7 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
                   {task.title}
                 </label>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{ visibility: 'visible' }}>
+                  <TaskDiscernmentButton task={task} />
                   <Button
                     variant="ghost"
                     size="icon"

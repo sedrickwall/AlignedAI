@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage, getToday, getWeekStart } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { getAIPrioritization } from "./ai";
+import { getAIPrioritization, generateMonetizationPlan, evaluateTask } from "./ai";
 import { z } from "zod";
 import type { EnergyLevel } from "@shared/schema";
 
@@ -665,6 +665,133 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating capacity profile:", error);
       res.status(500).json({ error: "Failed to update capacity profile" });
+    }
+  });
+
+  // ========== MONETIZATION ENGINE ENDPOINTS ==========
+
+  // Get current monetization recommendation
+  app.get("/api/ai/monetization", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const year = new Date().getFullYear();
+      const quarter = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+
+      const recommendation = await storage.getMonetizationRecommendation(userId, quarter, year);
+      res.json(recommendation || null);
+    } catch (error) {
+      console.error("Error fetching monetization recommendation:", error);
+      res.status(500).json({ error: "Failed to fetch monetization recommendation" });
+    }
+  });
+
+  // Generate new monetization recommendation
+  app.post("/api/ai/monetization/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const year = new Date().getFullYear();
+      const quarter = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+
+      const [identity, purpose, seasonPillars, capacity] = await Promise.all([
+        storage.getIdentityProfile(userId),
+        storage.getPurposeProfile(userId),
+        storage.getSeasonPillars(userId),
+        storage.getCapacityProfile(userId),
+      ]);
+
+      const result = await generateMonetizationPlan({
+        identity: identity || null,
+        purpose: purpose || null,
+        seasonPillars: seasonPillars || [],
+        capacity: capacity || null,
+      });
+
+      const recommendation = await storage.createMonetizationRecommendation({
+        userId,
+        primaryPath: result.primaryPath,
+        rationale: result.rationale,
+        monthPlans: result.monthPlans,
+        weeklyActions: result.weeklyActions,
+        secondaryOpportunities: result.secondaryOpportunities,
+        deferredItems: result.deferredItems,
+        encouragement: result.encouragement,
+        quarter,
+        year,
+      });
+
+      res.status(201).json(recommendation);
+    } catch (error) {
+      console.error("Error generating monetization recommendation:", error);
+      res.status(500).json({ error: "Failed to generate monetization recommendation" });
+    }
+  });
+
+  // ========== TASK DISCERNMENT ENGINE ENDPOINTS ==========
+
+  // Evaluate a single task
+  app.post("/api/ai/task/:id/evaluate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const taskId = req.params.id;
+      const today = getToday();
+
+      const [tasks, identity, purpose, seasonPillars, capacity, alignment] = await Promise.all([
+        storage.getTasks(userId, today),
+        storage.getIdentityProfile(userId),
+        storage.getPurposeProfile(userId),
+        storage.getSeasonPillars(userId),
+        storage.getCapacityProfile(userId),
+        storage.getDailyAlignment(userId, today),
+      ]);
+
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+
+      const currentEnergyLevel = (alignment?.energyLevel || "normal") as EnergyLevel;
+
+      const result = await evaluateTask({
+        task,
+        identity: identity || null,
+        purpose: purpose || null,
+        seasonPillars: seasonPillars || [],
+        capacity: capacity || null,
+        currentEnergyLevel,
+      });
+
+      const assessment = await storage.createTaskAssessment({
+        taskId,
+        userId,
+        pillarAlignment: result.pillarAlignment,
+        monetizationAlignment: result.monetizationAlignment,
+        purposeAlignment: result.purposeAlignment,
+        impactScore: result.impactScore,
+        effortScore: result.effortScore,
+        energyRequirement: result.energyRequirement,
+        decision: result.decision,
+        bestTimeSlot: result.bestTimeSlot,
+        assignTo: result.assignTo,
+        peaceCheck: result.peaceCheck,
+        reasoning: result.reasoning,
+      });
+
+      res.status(201).json(assessment);
+    } catch (error) {
+      console.error("Error evaluating task:", error);
+      res.status(500).json({ error: "Failed to evaluate task" });
+    }
+  });
+
+  // Get task assessment
+  app.get("/api/ai/task/:id/assessment", isAuthenticated, async (req: any, res) => {
+    try {
+      const taskId = req.params.id;
+      const assessment = await storage.getTaskAssessment(taskId);
+      res.json(assessment || null);
+    } catch (error) {
+      console.error("Error fetching task assessment:", error);
+      res.status(500).json({ error: "Failed to fetch task assessment" });
     }
   });
 

@@ -1,6 +1,7 @@
 import { Header } from "@/components/header";
 import { DailyDashboard } from "@/components/daily-dashboard";
 import { WeeklyOverview } from "@/components/weekly-overview";
+import { MonetizationDashboard } from "@/components/monetization-dashboard";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -284,6 +285,7 @@ export default function Home() {
                 isAIRefreshing={isAIRefreshing}
                 hasAIError={aiError}
               />
+              <MonetizationDashboard />
               <WeeklyOverview
                 pillars={weeklyData.pillars}
                 focusStatement={weeklyData.focusStatement}
