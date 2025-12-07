@@ -1,6 +1,6 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -8,7 +8,9 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
+import Onboarding from "@/pages/onboarding";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { OnboardingProgress } from "@shared/schema";
 
 function LoadingScreen() {
   return (
@@ -22,6 +24,33 @@ function LoadingScreen() {
   );
 }
 
+function AuthenticatedRoutes() {
+  const [location] = useLocation();
+  
+  const { data: onboardingProgress, isLoading: isOnboardingLoading } = useQuery<OnboardingProgress>({
+    queryKey: ["/api/onboarding/progress"],
+  });
+
+  if (isOnboardingLoading) {
+    return <LoadingScreen />;
+  }
+
+  const needsOnboarding = !onboardingProgress?.onboardingComplete;
+  const isOnOnboardingPage = location === "/onboarding";
+
+  if (needsOnboarding && !isOnOnboardingPage) {
+    return <Redirect to="/onboarding" />;
+  }
+
+  return (
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/onboarding" component={Onboarding} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -29,16 +58,16 @@ function Router() {
     return <LoadingScreen />;
   }
 
-  return (
-    <Switch>
-      {!isAuthenticated ? (
+  if (!isAuthenticated) {
+    return (
+      <Switch>
         <Route path="/" component={Landing} />
-      ) : (
-        <Route path="/" component={Home} />
-      )}
-      <Route component={NotFound} />
-    </Switch>
-  );
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  return <AuthenticatedRoutes />;
 }
 
 function App() {
