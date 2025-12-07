@@ -9,6 +9,9 @@ interface AlignmentCardProps {
   onEnergyChange: (level: EnergyLevel) => void;
   tasks: Task[];
   onTaskToggle: (taskId: string) => void;
+  onTaskAdd: (title: string) => void;
+  onTaskUpdate: (taskId: string, title: string) => void;
+  onTaskDelete: (taskId: string) => void;
 }
 
 export function AlignmentCard({
@@ -16,6 +19,9 @@ export function AlignmentCard({
   onEnergyChange,
   tasks,
   onTaskToggle,
+  onTaskAdd,
+  onTaskUpdate,
+  onTaskDelete,
 }: AlignmentCardProps) {
   return (
     <Card className="shadow-md">
@@ -28,7 +34,13 @@ export function AlignmentCard({
       <CardContent className="pt-0 space-y-5">
         <EnergySelector value={energyLevel} onChange={onEnergyChange} />
         <div className="h-px bg-border" />
-        <BigThree tasks={tasks} onToggle={onTaskToggle} />
+        <BigThree
+          tasks={tasks}
+          onToggle={onTaskToggle}
+          onAdd={onTaskAdd}
+          onUpdate={onTaskUpdate}
+          onDelete={onTaskDelete}
+        />
       </CardContent>
     </Card>
   );

@@ -92,9 +92,36 @@ export default function Home() {
     },
   });
 
-  const taskMutation = useMutation({
+  const taskToggleMutation = useMutation({
     mutationFn: async ({ taskId, completed }: { taskId: string; completed: boolean }) => {
       return apiRequest("PATCH", `/api/tasks/${taskId}`, { completed });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
+  const taskAddMutation = useMutation({
+    mutationFn: async (title: string) => {
+      return apiRequest("POST", "/api/tasks", { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
+  const taskUpdateMutation = useMutation({
+    mutationFn: async ({ taskId, title }: { taskId: string; title: string }) => {
+      return apiRequest("PATCH", `/api/tasks/${taskId}`, { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
+    },
+  });
+
+  const taskDeleteMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      return apiRequest("DELETE", `/api/tasks/${taskId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
@@ -108,8 +135,20 @@ export default function Home() {
   const handleTaskToggle = (taskId: string) => {
     const task = dailyData?.tasks.find(t => t.id === taskId);
     if (task) {
-      taskMutation.mutate({ taskId, completed: !task.completed });
+      taskToggleMutation.mutate({ taskId, completed: !task.completed });
     }
+  };
+
+  const handleTaskAdd = (title: string) => {
+    taskAddMutation.mutate(title);
+  };
+
+  const handleTaskUpdate = (taskId: string, title: string) => {
+    taskUpdateMutation.mutate({ taskId, title });
+  };
+
+  const handleTaskDelete = (taskId: string) => {
+    taskDeleteMutation.mutate(taskId);
   };
 
   const handleReset = () => {
@@ -136,6 +175,9 @@ export default function Home() {
                 onEnergyChange={handleEnergyChange}
                 tasks={dailyData.tasks}
                 onTaskToggle={handleTaskToggle}
+                onTaskAdd={handleTaskAdd}
+                onTaskUpdate={handleTaskUpdate}
+                onTaskDelete={handleTaskDelete}
                 schedule={dailyData.schedule}
                 onReset={handleReset}
               />

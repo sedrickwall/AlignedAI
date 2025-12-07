@@ -10,6 +10,9 @@ interface DailyDashboardProps {
   onEnergyChange: (level: EnergyLevel) => void;
   tasks: Task[];
   onTaskToggle: (taskId: string) => void;
+  onTaskAdd: (title: string) => void;
+  onTaskUpdate: (taskId: string, title: string) => void;
+  onTaskDelete: (taskId: string) => void;
   schedule: TimeBlock[];
   onReset: () => void;
 }
@@ -20,6 +23,9 @@ export function DailyDashboard({
   onEnergyChange,
   tasks,
   onTaskToggle,
+  onTaskAdd,
+  onTaskUpdate,
+  onTaskDelete,
   schedule,
   onReset,
 }: DailyDashboardProps) {
@@ -33,6 +39,9 @@ export function DailyDashboard({
             onEnergyChange={onEnergyChange}
             tasks={tasks}
             onTaskToggle={onTaskToggle}
+            onTaskAdd={onTaskAdd}
+            onTaskUpdate={onTaskUpdate}
+            onTaskDelete={onTaskDelete}
           />
         </div>
         <div className="space-y-4">
