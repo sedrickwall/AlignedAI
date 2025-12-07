@@ -4,7 +4,7 @@ import { WeeklyOverview } from "@/components/weekly-overview";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { EnergyLevel, Task, Pillar, TimeBlock } from "@shared/schema";
+import type { EnergyLevel, Task, Pillar, TimeBlock, Reflection } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -94,6 +94,10 @@ export default function Home() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: reflectionData } = useQuery<Reflection | null>({
+    queryKey: ["/api/reflections"],
+  });
+
   const handleRefreshAI = () => {
     refetchAI();
   };
@@ -179,6 +183,26 @@ export default function Home() {
     },
   });
 
+  const reflectionMutation = useMutation({
+    mutationFn: async (data: { wins?: string; challenges?: string; gratitude?: string; nextWeekIntention?: string }) => {
+      return apiRequest("PATCH", "/api/reflections", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reflections"] });
+      toast({
+        title: "Reflection Saved",
+        description: "Your weekly reflection has been saved.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Save Failed",
+        description: "Could not save your reflection. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEnergyChange = (level: EnergyLevel) => {
     energyMutation.mutate(level);
   };
@@ -216,6 +240,10 @@ export default function Home() {
 
   const handlePillarUpdate = (pillarId: string, current: number, target: number) => {
     pillarUpdateMutation.mutate({ pillarId, current, target });
+  };
+
+  const handleReflectionSave = (data: { wins?: string; challenges?: string; gratitude?: string; nextWeekIntention?: string }) => {
+    reflectionMutation.mutate(data);
   };
 
   const handleReset = () => {
@@ -261,6 +289,9 @@ export default function Home() {
                 focusStatement={weeklyData.focusStatement}
                 topFive={weeklyData.topFive}
                 onPillarUpdate={handlePillarUpdate}
+                reflection={reflectionData ?? null}
+                onReflectionSave={handleReflectionSave}
+                isReflectionSaving={reflectionMutation.isPending}
               />
             </div>
           ) : (
