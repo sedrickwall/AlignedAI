@@ -131,6 +131,178 @@ export const insertWeeklyFocusSchema = createInsertSchema(weeklyFocus).omit({
 export type InsertWeeklyFocus = z.infer<typeof insertWeeklyFocusSchema>;
 export type WeeklyFocus = typeof weeklyFocus.$inferSelect;
 
+// User Identity Profile (Step 1 of onboarding)
+export const identityProfiles = pgTable("identity_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  gifts: text("gifts").array(), // God-given abilities
+  skills: text("skills").array(), // Developed through practice
+  interests: text("interests").array(), // What lights you up
+  passions: text("passions").array(), // What grabs your heart
+  strongestTalent: text("strongest_talent"), // Gift + Skill combination
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertIdentityProfileSchema = createInsertSchema(identityProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertIdentityProfile = z.infer<typeof insertIdentityProfileSchema>;
+export type IdentityProfile = typeof identityProfiles.$inferSelect;
+
+// User Purpose Profile (Step 2 of onboarding)
+export const purposeProfiles = pgTable("purpose_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  whoToBlessing: text("who_to_bless").array(), // Who they want to serve
+  generosityTargets: jsonb("generosity_targets"), // Those they love, strangers, community, kingdom
+  purposeStatement: text("purpose_statement"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPurposeProfileSchema = createInsertSchema(purposeProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertPurposeProfile = z.infer<typeof insertPurposeProfileSchema>;
+export type PurposeProfile = typeof purposeProfiles.$inferSelect;
+
+// User Season Pillars (Step 3 of onboarding) - customized pillars for this season
+export const seasonPillars = pgTable("season_pillars", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  order: integer("order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  weeklyHoursBudget: integer("weekly_hours_budget"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSeasonPillarSchema = createInsertSchema(seasonPillars).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSeasonPillar = z.infer<typeof insertSeasonPillarSchema>;
+export type SeasonPillar = typeof seasonPillars.$inferSelect;
+
+// User Vision Map (Step 4 of onboarding)
+export const visionMaps = pgTable("vision_maps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  yearVision: text("year_vision"), // User's vision for the year
+  quarterlyOutcomes: jsonb("quarterly_outcomes"), // Q1, Q2, Q3, Q4 outcomes
+  monthlyThemes: jsonb("monthly_themes"), // 12 monthly themes
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertVisionMapSchema = createInsertSchema(visionMaps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertVisionMap = z.infer<typeof insertVisionMapSchema>;
+export type VisionMap = typeof visionMaps.$inferSelect;
+
+// User Capacity Profile (Step 5 of onboarding)
+export const capacityProfiles = pgTable("capacity_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  energyWindows: jsonb("energy_windows"), // Peak hours, drain times
+  fixedRoutines: jsonb("fixed_routines"), // Non-negotiable commitments
+  weeklyAvailableHours: integer("weekly_available_hours"),
+  emotionalBandwidth: varchar("emotional_bandwidth"), // high, medium, low
+  seasonOfLife: text("season_of_life"), // Description of current season
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCapacityProfileSchema = createInsertSchema(capacityProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCapacityProfile = z.infer<typeof insertCapacityProfileSchema>;
+export type CapacityProfile = typeof capacityProfiles.$inferSelect;
+
+// Monetization Recommendations (AI-generated)
+export const monetizationRecommendations = pgTable("monetization_recommendations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  primaryPath: text("primary_path").notNull(),
+  rationale: jsonb("rationale"), // Why this path (gift/skill/impact/effort scores)
+  monthPlans: jsonb("month_plans"), // 90-day plan: month1, month2, month3
+  weeklyActions: jsonb("weekly_actions"), // 5-7 revenue tasks per week
+  secondaryOpportunities: text("secondary_opportunities").array(),
+  deferredItems: text("deferred_items").array(),
+  encouragement: text("encouragement"), // Kingdom-based encouragement
+  quarter: varchar("quarter").notNull(), // Q1, Q2, Q3, Q4
+  year: integer("year").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMonetizationRecommendationSchema = createInsertSchema(monetizationRecommendations).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertMonetizationRecommendation = z.infer<typeof insertMonetizationRecommendationSchema>;
+export type MonetizationRecommendation = typeof monetizationRecommendations.$inferSelect;
+
+// Task AI Assessments (for task discernment engine)
+export const taskAssessments = pgTable("task_assessments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskId: varchar("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  pillarAlignment: text("pillar_alignment"), // Which pillar it supports
+  monetizationAlignment: boolean("monetization_alignment"),
+  purposeAlignment: boolean("purpose_alignment"),
+  impactScore: integer("impact_score"), // 0-10
+  effortScore: integer("effort_score"), // 0-10
+  energyRequirement: varchar("energy_requirement"), // high-brain, low-brain
+  decision: varchar("decision").notNull(), // do_today, do_this_week, next_week, backlog, assign, reject
+  bestTimeSlot: varchar("best_time_slot"),
+  assignTo: text("assign_to"),
+  peaceCheck: varchar("peace_check"), // aligned, stressed, unclear
+  reasoning: text("reasoning"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTaskAssessmentSchema = createInsertSchema(taskAssessments).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertTaskAssessment = z.infer<typeof insertTaskAssessmentSchema>;
+export type TaskAssessment = typeof taskAssessments.$inferSelect;
+
+// Onboarding Progress tracking
+export const onboardingProgress = pgTable("onboarding_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  currentStep: integer("current_step").notNull().default(1), // 1-5
+  identityComplete: boolean("identity_complete").notNull().default(false),
+  purposeComplete: boolean("purpose_complete").notNull().default(false),
+  pillarsComplete: boolean("pillars_complete").notNull().default(false),
+  visionComplete: boolean("vision_complete").notNull().default(false),
+  capacityComplete: boolean("capacity_complete").notNull().default(false),
+  onboardingComplete: boolean("onboarding_complete").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOnboardingProgressSchema = createInsertSchema(onboardingProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertOnboardingProgress = z.infer<typeof insertOnboardingProgressSchema>;
+export type OnboardingProgress = typeof onboardingProgress.$inferSelect;
+
 // Reflections for weekly review
 export const reflections = pgTable("reflections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -151,13 +323,21 @@ export type InsertReflection = z.infer<typeof insertReflectionSchema>;
 export type Reflection = typeof reflections.$inferSelect;
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   tasks: many(tasks),
   timeBlocks: many(timeBlocks),
   pillars: many(pillars),
   dailyAlignments: many(dailyAlignments),
   weeklyFocus: many(weeklyFocus),
   reflections: many(reflections),
+  identityProfile: one(identityProfiles),
+  purposeProfile: one(purposeProfiles),
+  seasonPillars: many(seasonPillars),
+  visionMaps: many(visionMaps),
+  capacityProfile: one(capacityProfiles),
+  monetizationRecommendations: many(monetizationRecommendations),
+  taskAssessments: many(taskAssessments),
+  onboardingProgress: one(onboardingProgress),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({

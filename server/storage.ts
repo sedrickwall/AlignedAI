@@ -6,6 +6,14 @@ import {
   dailyAlignments,
   weeklyFocus,
   reflections,
+  identityProfiles,
+  purposeProfiles,
+  seasonPillars,
+  visionMaps,
+  capacityProfiles,
+  monetizationRecommendations,
+  taskAssessments,
+  onboardingProgress,
   type User,
   type UpsertUser,
   type Task,
@@ -21,6 +29,22 @@ import {
   type Reflection,
   type InsertReflection,
   type EnergyLevel,
+  type IdentityProfile,
+  type InsertIdentityProfile,
+  type PurposeProfile,
+  type InsertPurposeProfile,
+  type SeasonPillar,
+  type InsertSeasonPillar,
+  type VisionMap,
+  type InsertVisionMap,
+  type CapacityProfile,
+  type InsertCapacityProfile,
+  type MonetizationRecommendation,
+  type InsertMonetizationRecommendation,
+  type TaskAssessment,
+  type InsertTaskAssessment,
+  type OnboardingProgress,
+  type InsertOnboardingProgress,
   defaultPillarNames,
   defaultScheduleTemplates,
   defaultTaskTemplates,
@@ -78,6 +102,40 @@ export interface IStorage {
   // Reflection operations
   getReflection(userId: string, weekStart: string): Promise<Reflection | undefined>;
   upsertReflection(reflection: InsertReflection): Promise<Reflection>;
+
+  // Identity Profile operations
+  getIdentityProfile(userId: string): Promise<IdentityProfile | undefined>;
+  upsertIdentityProfile(profile: InsertIdentityProfile): Promise<IdentityProfile>;
+
+  // Purpose Profile operations
+  getPurposeProfile(userId: string): Promise<PurposeProfile | undefined>;
+  upsertPurposeProfile(profile: InsertPurposeProfile): Promise<PurposeProfile>;
+
+  // Season Pillars operations
+  getSeasonPillars(userId: string): Promise<SeasonPillar[]>;
+  createSeasonPillar(pillar: InsertSeasonPillar): Promise<SeasonPillar>;
+  updateSeasonPillar(id: string, updates: Partial<SeasonPillar>): Promise<SeasonPillar | undefined>;
+  deleteSeasonPillar(id: string): Promise<boolean>;
+
+  // Vision Map operations
+  getVisionMap(userId: string, year: number): Promise<VisionMap | undefined>;
+  upsertVisionMap(visionMap: InsertVisionMap): Promise<VisionMap>;
+
+  // Capacity Profile operations
+  getCapacityProfile(userId: string): Promise<CapacityProfile | undefined>;
+  upsertCapacityProfile(profile: InsertCapacityProfile): Promise<CapacityProfile>;
+
+  // Monetization Recommendation operations
+  getMonetizationRecommendation(userId: string, quarter: string, year: number): Promise<MonetizationRecommendation | undefined>;
+  createMonetizationRecommendation(recommendation: InsertMonetizationRecommendation): Promise<MonetizationRecommendation>;
+
+  // Task Assessment operations
+  getTaskAssessment(taskId: string): Promise<TaskAssessment | undefined>;
+  createTaskAssessment(assessment: InsertTaskAssessment): Promise<TaskAssessment>;
+
+  // Onboarding Progress operations
+  getOnboardingProgress(userId: string): Promise<OnboardingProgress | undefined>;
+  upsertOnboardingProgress(progress: InsertOnboardingProgress): Promise<OnboardingProgress>;
 
   // Initialize defaults for new user
   initializeUserDefaults(userId: string): Promise<void>;
@@ -326,6 +384,198 @@ export class DatabaseStorage implements IStorage {
         topFive: defaultTopFive,
       });
     }
+
+    // Initialize onboarding progress for new user
+    const existingOnboarding = await this.getOnboardingProgress(userId);
+    if (!existingOnboarding) {
+      await this.upsertOnboardingProgress({
+        userId,
+        currentStep: 1,
+        identityComplete: false,
+        purposeComplete: false,
+        pillarsComplete: false,
+        visionComplete: false,
+        capacityComplete: false,
+        onboardingComplete: false,
+      });
+    }
+  }
+
+  // Identity Profile operations
+  async getIdentityProfile(userId: string): Promise<IdentityProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(identityProfiles)
+      .where(eq(identityProfiles.userId, userId));
+    return profile;
+  }
+
+  async upsertIdentityProfile(profile: InsertIdentityProfile): Promise<IdentityProfile> {
+    const existing = await this.getIdentityProfile(profile.userId);
+    if (existing) {
+      const [updated] = await db
+        .update(identityProfiles)
+        .set({ ...profile, updatedAt: new Date() })
+        .where(eq(identityProfiles.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newProfile] = await db.insert(identityProfiles).values(profile).returning();
+    return newProfile;
+  }
+
+  // Purpose Profile operations
+  async getPurposeProfile(userId: string): Promise<PurposeProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(purposeProfiles)
+      .where(eq(purposeProfiles.userId, userId));
+    return profile;
+  }
+
+  async upsertPurposeProfile(profile: InsertPurposeProfile): Promise<PurposeProfile> {
+    const existing = await this.getPurposeProfile(profile.userId);
+    if (existing) {
+      const [updated] = await db
+        .update(purposeProfiles)
+        .set({ ...profile, updatedAt: new Date() })
+        .where(eq(purposeProfiles.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newProfile] = await db.insert(purposeProfiles).values(profile).returning();
+    return newProfile;
+  }
+
+  // Season Pillars operations
+  async getSeasonPillars(userId: string): Promise<SeasonPillar[]> {
+    return await db
+      .select()
+      .from(seasonPillars)
+      .where(eq(seasonPillars.userId, userId))
+      .orderBy(asc(seasonPillars.order));
+  }
+
+  async createSeasonPillar(pillar: InsertSeasonPillar): Promise<SeasonPillar> {
+    const [newPillar] = await db.insert(seasonPillars).values(pillar).returning();
+    return newPillar;
+  }
+
+  async updateSeasonPillar(id: string, updates: Partial<SeasonPillar>): Promise<SeasonPillar | undefined> {
+    const [updated] = await db
+      .update(seasonPillars)
+      .set(updates)
+      .where(eq(seasonPillars.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteSeasonPillar(id: string): Promise<boolean> {
+    const result = await db.delete(seasonPillars).where(eq(seasonPillars.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Vision Map operations
+  async getVisionMap(userId: string, year: number): Promise<VisionMap | undefined> {
+    const [visionMap] = await db
+      .select()
+      .from(visionMaps)
+      .where(and(eq(visionMaps.userId, userId), eq(visionMaps.year, year)));
+    return visionMap;
+  }
+
+  async upsertVisionMap(visionMap: InsertVisionMap): Promise<VisionMap> {
+    const existing = await this.getVisionMap(visionMap.userId, visionMap.year);
+    if (existing) {
+      const [updated] = await db
+        .update(visionMaps)
+        .set({ ...visionMap, updatedAt: new Date() })
+        .where(eq(visionMaps.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newVisionMap] = await db.insert(visionMaps).values(visionMap).returning();
+    return newVisionMap;
+  }
+
+  // Capacity Profile operations
+  async getCapacityProfile(userId: string): Promise<CapacityProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(capacityProfiles)
+      .where(eq(capacityProfiles.userId, userId));
+    return profile;
+  }
+
+  async upsertCapacityProfile(profile: InsertCapacityProfile): Promise<CapacityProfile> {
+    const existing = await this.getCapacityProfile(profile.userId);
+    if (existing) {
+      const [updated] = await db
+        .update(capacityProfiles)
+        .set({ ...profile, updatedAt: new Date() })
+        .where(eq(capacityProfiles.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newProfile] = await db.insert(capacityProfiles).values(profile).returning();
+    return newProfile;
+  }
+
+  // Monetization Recommendation operations
+  async getMonetizationRecommendation(userId: string, quarter: string, year: number): Promise<MonetizationRecommendation | undefined> {
+    const [recommendation] = await db
+      .select()
+      .from(monetizationRecommendations)
+      .where(
+        and(
+          eq(monetizationRecommendations.userId, userId),
+          eq(monetizationRecommendations.quarter, quarter),
+          eq(monetizationRecommendations.year, year)
+        )
+      );
+    return recommendation;
+  }
+
+  async createMonetizationRecommendation(recommendation: InsertMonetizationRecommendation): Promise<MonetizationRecommendation> {
+    const [newRecommendation] = await db.insert(monetizationRecommendations).values(recommendation).returning();
+    return newRecommendation;
+  }
+
+  // Task Assessment operations
+  async getTaskAssessment(taskId: string): Promise<TaskAssessment | undefined> {
+    const [assessment] = await db
+      .select()
+      .from(taskAssessments)
+      .where(eq(taskAssessments.taskId, taskId));
+    return assessment;
+  }
+
+  async createTaskAssessment(assessment: InsertTaskAssessment): Promise<TaskAssessment> {
+    const [newAssessment] = await db.insert(taskAssessments).values(assessment).returning();
+    return newAssessment;
+  }
+
+  // Onboarding Progress operations
+  async getOnboardingProgress(userId: string): Promise<OnboardingProgress | undefined> {
+    const [progress] = await db
+      .select()
+      .from(onboardingProgress)
+      .where(eq(onboardingProgress.userId, userId));
+    return progress;
+  }
+
+  async upsertOnboardingProgress(progress: InsertOnboardingProgress): Promise<OnboardingProgress> {
+    const existing = await this.getOnboardingProgress(progress.userId);
+    if (existing) {
+      const [updated] = await db
+        .update(onboardingProgress)
+        .set({ ...progress, updatedAt: new Date() })
+        .where(eq(onboardingProgress.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [newProgress] = await db.insert(onboardingProgress).values(progress).returning();
+    return newProgress;
   }
 }
 

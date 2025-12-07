@@ -6,6 +6,54 @@ import { getAIPrioritization } from "./ai";
 import { z } from "zod";
 import type { EnergyLevel } from "@shared/schema";
 
+// Onboarding schemas
+const identityProfileSchema = z.object({
+  gifts: z.array(z.string()).optional(),
+  skills: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
+  passions: z.array(z.string()).optional(),
+  strongestTalent: z.string().optional(),
+});
+
+const purposeProfileSchema = z.object({
+  whoToBlessing: z.array(z.string()).optional(),
+  generosityTargets: z.any().optional(),
+  purposeStatement: z.string().optional(),
+});
+
+const seasonPillarSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  order: z.number().optional(),
+  isActive: z.boolean().optional(),
+  weeklyHoursBudget: z.number().optional(),
+});
+
+const visionMapSchema = z.object({
+  yearVision: z.string().optional(),
+  quarterlyOutcomes: z.any().optional(),
+  monthlyThemes: z.any().optional(),
+  year: z.number(),
+});
+
+const capacityProfileSchema = z.object({
+  energyWindows: z.any().optional(),
+  fixedRoutines: z.any().optional(),
+  weeklyAvailableHours: z.number().optional(),
+  emotionalBandwidth: z.string().optional(),
+  seasonOfLife: z.string().optional(),
+});
+
+const onboardingProgressSchema = z.object({
+  currentStep: z.number().optional(),
+  identityComplete: z.boolean().optional(),
+  purposeComplete: z.boolean().optional(),
+  pillarsComplete: z.boolean().optional(),
+  visionComplete: z.boolean().optional(),
+  capacityComplete: z.boolean().optional(),
+  onboardingComplete: z.boolean().optional(),
+});
+
 const energyLevelSchema = z.enum(["low", "normal", "high"]);
 
 const updateTaskSchema = z.object({
@@ -389,6 +437,264 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting AI prioritization:", error);
       res.status(500).json({ error: "Failed to get AI suggestions" });
+    }
+  });
+
+  // ========== ONBOARDING ENDPOINTS ==========
+
+  // Get onboarding progress
+  app.get("/api/onboarding/progress", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const progress = await storage.getOnboardingProgress(userId);
+      res.json(progress || { currentStep: 1, onboardingComplete: false });
+    } catch (error) {
+      console.error("Error fetching onboarding progress:", error);
+      res.status(500).json({ error: "Failed to fetch onboarding progress" });
+    }
+  });
+
+  // Update onboarding progress
+  app.patch("/api/onboarding/progress", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = onboardingProgressSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid progress data" });
+      }
+
+      const progress = await storage.upsertOnboardingProgress({
+        userId,
+        ...result.data,
+      });
+      res.json(progress);
+    } catch (error) {
+      console.error("Error updating onboarding progress:", error);
+      res.status(500).json({ error: "Failed to update onboarding progress" });
+    }
+  });
+
+  // ========== IDENTITY PROFILE ENDPOINTS ==========
+
+  app.get("/api/profile/identity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getIdentityProfile(userId);
+      res.json(profile || null);
+    } catch (error) {
+      console.error("Error fetching identity profile:", error);
+      res.status(500).json({ error: "Failed to fetch identity profile" });
+    }
+  });
+
+  app.patch("/api/profile/identity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = identityProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid identity profile data" });
+      }
+
+      const profile = await storage.upsertIdentityProfile({
+        userId,
+        ...result.data,
+      });
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating identity profile:", error);
+      res.status(500).json({ error: "Failed to update identity profile" });
+    }
+  });
+
+  // ========== PURPOSE PROFILE ENDPOINTS ==========
+
+  app.get("/api/profile/purpose", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getPurposeProfile(userId);
+      res.json(profile || null);
+    } catch (error) {
+      console.error("Error fetching purpose profile:", error);
+      res.status(500).json({ error: "Failed to fetch purpose profile" });
+    }
+  });
+
+  app.patch("/api/profile/purpose", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = purposeProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid purpose profile data" });
+      }
+
+      const profile = await storage.upsertPurposeProfile({
+        userId,
+        ...result.data,
+      });
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating purpose profile:", error);
+      res.status(500).json({ error: "Failed to update purpose profile" });
+    }
+  });
+
+  // ========== SEASON PILLARS ENDPOINTS ==========
+
+  app.get("/api/profile/season-pillars", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const pillars = await storage.getSeasonPillars(userId);
+      res.json(pillars);
+    } catch (error) {
+      console.error("Error fetching season pillars:", error);
+      res.status(500).json({ error: "Failed to fetch season pillars" });
+    }
+  });
+
+  app.post("/api/profile/season-pillars", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = seasonPillarSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid season pillar data" });
+      }
+
+      const existingPillars = await storage.getSeasonPillars(userId);
+      const pillar = await storage.createSeasonPillar({
+        userId,
+        ...result.data,
+        order: result.data.order ?? existingPillars.length,
+      });
+      res.status(201).json(pillar);
+    } catch (error) {
+      console.error("Error creating season pillar:", error);
+      res.status(500).json({ error: "Failed to create season pillar" });
+    }
+  });
+
+  app.patch("/api/profile/season-pillars/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = seasonPillarSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid season pillar update data" });
+      }
+
+      const pillar = await storage.updateSeasonPillar(req.params.id, result.data);
+      if (!pillar) {
+        return res.status(404).json({ error: "Season pillar not found" });
+      }
+      res.json(pillar);
+    } catch (error) {
+      console.error("Error updating season pillar:", error);
+      res.status(500).json({ error: "Failed to update season pillar" });
+    }
+  });
+
+  app.delete("/api/profile/season-pillars/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const deleted = await storage.deleteSeasonPillar(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Season pillar not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting season pillar:", error);
+      res.status(500).json({ error: "Failed to delete season pillar" });
+    }
+  });
+
+  // ========== VISION MAP ENDPOINTS ==========
+
+  app.get("/api/profile/vision", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const year = parseInt(req.query.year as string) || new Date().getFullYear();
+      const visionMap = await storage.getVisionMap(userId, year);
+      res.json(visionMap || null);
+    } catch (error) {
+      console.error("Error fetching vision map:", error);
+      res.status(500).json({ error: "Failed to fetch vision map" });
+    }
+  });
+
+  app.patch("/api/profile/vision", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = visionMapSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid vision map data" });
+      }
+
+      const visionMap = await storage.upsertVisionMap({
+        userId,
+        ...result.data,
+      });
+      res.json(visionMap);
+    } catch (error) {
+      console.error("Error updating vision map:", error);
+      res.status(500).json({ error: "Failed to update vision map" });
+    }
+  });
+
+  // ========== CAPACITY PROFILE ENDPOINTS ==========
+
+  app.get("/api/profile/capacity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getCapacityProfile(userId);
+      res.json(profile || null);
+    } catch (error) {
+      console.error("Error fetching capacity profile:", error);
+      res.status(500).json({ error: "Failed to fetch capacity profile" });
+    }
+  });
+
+  app.patch("/api/profile/capacity", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = capacityProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid capacity profile data" });
+      }
+
+      const profile = await storage.upsertCapacityProfile({
+        userId,
+        ...result.data,
+      });
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating capacity profile:", error);
+      res.status(500).json({ error: "Failed to update capacity profile" });
+    }
+  });
+
+  // ========== GET ALL ONBOARDING DATA ==========
+
+  app.get("/api/onboarding/all", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const year = new Date().getFullYear();
+
+      const [progress, identity, purpose, seasonPillars, vision, capacity] = await Promise.all([
+        storage.getOnboardingProgress(userId),
+        storage.getIdentityProfile(userId),
+        storage.getPurposeProfile(userId),
+        storage.getSeasonPillars(userId),
+        storage.getVisionMap(userId, year),
+        storage.getCapacityProfile(userId),
+      ]);
+
+      res.json({
+        progress: progress || { currentStep: 1, onboardingComplete: false },
+        identity: identity || null,
+        purpose: purpose || null,
+        seasonPillars: seasonPillars || [],
+        vision: vision || null,
+        capacity: capacity || null,
+      });
+    } catch (error) {
+      console.error("Error fetching all onboarding data:", error);
+      res.status(500).json({ error: "Failed to fetch onboarding data" });
     }
   });
 
