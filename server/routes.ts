@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage, getToday, getWeekStart } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { getAIPrioritization } from "./ai";
 import { z } from "zod";
 import type { EnergyLevel } from "@shared/schema";
 
@@ -360,6 +361,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating reflection:", error);
       res.status(500).json({ error: "Failed to update reflection" });
+    }
+  });
+
+  // AI Prioritization endpoint
+  app.get("/api/ai/prioritize", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const today = getToday();
+      const weekStart = getWeekStart();
+      
+      const [alignment, tasks, pillars] = await Promise.all([
+        storage.getDailyAlignment(userId, today),
+        storage.getTasks(userId, today),
+        storage.getPillars(userId, weekStart),
+      ]);
+
+      const energyLevel = (alignment?.energyLevel || "normal") as EnergyLevel;
+      
+      const suggestion = await getAIPrioritization({
+        energyLevel,
+        tasks,
+        pillars,
+      });
+      
+      res.json(suggestion);
+    } catch (error) {
+      console.error("Error getting AI prioritization:", error);
+      res.status(500).json({ error: "Failed to get AI suggestions" });
     }
   });
 

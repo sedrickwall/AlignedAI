@@ -21,6 +21,12 @@ interface WeeklyData {
   topFive: string[];
 }
 
+interface AISuggestion {
+  suggestion: string;
+  reasoning: string;
+  focusPillar: string;
+}
+
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -82,6 +88,15 @@ export default function Home() {
   const { data: weeklyData, isLoading: isWeeklyLoading } = useQuery<WeeklyData>({
     queryKey: ["/api/weekly"],
   });
+
+  const { data: aiSuggestion, isLoading: isAILoading, refetch: refetchAI, isFetching: isAIRefreshing, isError: aiError } = useQuery<AISuggestion>({
+    queryKey: ["/api/ai/prioritize"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const handleRefreshAI = () => {
+    refetchAI();
+  };
 
   const energyMutation = useMutation({
     mutationFn: async (level: EnergyLevel) => {
@@ -235,6 +250,11 @@ export default function Home() {
                 onBlockUpdate={handleBlockUpdate}
                 onBlockDelete={handleBlockDelete}
                 onReset={handleReset}
+                aiSuggestion={aiSuggestion}
+                isAILoading={isAILoading}
+                onRefreshAI={handleRefreshAI}
+                isAIRefreshing={isAIRefreshing}
+                hasAIError={aiError}
               />
               <WeeklyOverview
                 pillars={weeklyData.pillars}
