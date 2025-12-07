@@ -5,9 +5,10 @@ import { BarChart3 } from "lucide-react";
 
 interface PillarsCardProps {
   pillars: Pillar[];
+  onPillarUpdate?: (pillarId: string, current: number, target: number) => void;
 }
 
-export function PillarsCard({ pillars }: PillarsCardProps) {
+export function PillarsCard({ pillars, onPillarUpdate }: PillarsCardProps) {
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-3">
@@ -19,7 +20,11 @@ export function PillarsCard({ pillars }: PillarsCardProps) {
       <CardContent className="pt-0">
         <div className="space-y-3">
           {pillars.map((pillar) => (
-            <PillarBar key={pillar.id} pillar={pillar} />
+            <PillarBar
+              key={pillar.id}
+              pillar={pillar}
+              onUpdate={onPillarUpdate}
+            />
           ))}
         </div>
       </CardContent>

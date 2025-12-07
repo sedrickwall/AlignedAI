@@ -155,6 +155,15 @@ export default function Home() {
     },
   });
 
+  const pillarUpdateMutation = useMutation({
+    mutationFn: async ({ pillarId, current, target }: { pillarId: string; current: number; target: number }) => {
+      return apiRequest("PATCH", `/api/pillars/${pillarId}`, { current, target });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/weekly"] });
+    },
+  });
+
   const handleEnergyChange = (level: EnergyLevel) => {
     energyMutation.mutate(level);
   };
@@ -188,6 +197,10 @@ export default function Home() {
 
   const handleBlockDelete = (blockId: string) => {
     blockDeleteMutation.mutate(blockId);
+  };
+
+  const handlePillarUpdate = (pillarId: string, current: number, target: number) => {
+    pillarUpdateMutation.mutate({ pillarId, current, target });
   };
 
   const handleReset = () => {
@@ -227,6 +240,7 @@ export default function Home() {
                 pillars={weeklyData.pillars}
                 focusStatement={weeklyData.focusStatement}
                 topFive={weeklyData.topFive}
+                onPillarUpdate={handlePillarUpdate}
               />
             </div>
           ) : (
