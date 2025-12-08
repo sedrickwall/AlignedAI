@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,30 +12,15 @@ interface BigThreeProps {
   onAdd: (title: string) => void;
   onUpdate: (taskId: string, title: string) => void;
   onDelete: (taskId: string) => void;
+  newlyCreatedTask?: Task | null;
+  onClearNewTask?: () => void;
 }
 
-export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThreeProps) {
+export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete, newlyCreatedTask, onClearNewTask }: BigThreeProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [pendingDiscernmentTitle, setPendingDiscernmentTitle] = useState<string | null>(null);
-  const [discernmentTask, setDiscernmentTask] = useState<Task | null>(null);
-  const previousTasksRef = useRef<Task[]>(tasks);
-
-  useEffect(() => {
-    if (pendingDiscernmentTitle) {
-      const newTask = tasks.find(
-        t => t.title === pendingDiscernmentTitle && 
-        !previousTasksRef.current.some(prev => prev.id === t.id)
-      );
-      if (newTask) {
-        setDiscernmentTask(newTask);
-        setPendingDiscernmentTitle(null);
-      }
-    }
-    previousTasksRef.current = tasks;
-  }, [tasks, pendingDiscernmentTitle]);
 
   const handleStartEdit = (task: Task) => {
     setEditingId(task.id);
@@ -57,9 +42,7 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
 
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
-      const title = newTaskTitle.trim();
-      setPendingDiscernmentTitle(title);
-      onAdd(title);
+      onAdd(newTaskTitle.trim());
       setNewTaskTitle("");
       setIsAdding(false);
     }
@@ -210,11 +193,11 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
         )}
       </ul>
 
-      {discernmentTask && (
+      {newlyCreatedTask && (
         <TaskDiscernmentDialog
-          task={discernmentTask}
-          isOpen={!!discernmentTask}
-          onClose={() => setDiscernmentTask(null)}
+          task={newlyCreatedTask}
+          isOpen={!!newlyCreatedTask}
+          onClose={() => onClearNewTask?.()}
           autoEvaluate={true}
         />
       )}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "@/components/header";
 import { DailyDashboard } from "@/components/daily-dashboard";
 import { WeeklyOverview } from "@/components/weekly-overview";
@@ -121,11 +122,15 @@ export default function Home() {
     },
   });
 
+  const [newlyCreatedTask, setNewlyCreatedTask] = useState<Task | null>(null);
+
   const taskAddMutation = useMutation({
     mutationFn: async (title: string) => {
-      return apiRequest("POST", "/api/tasks", { title });
+      const response = await apiRequest("POST", "/api/tasks", { title });
+      return response.json() as Promise<Task>;
     },
-    onSuccess: () => {
+    onSuccess: (createdTask: Task) => {
+      setNewlyCreatedTask(createdTask);
       queryClient.invalidateQueries({ queryKey: ["/api/daily"] });
     },
   });
@@ -284,6 +289,8 @@ export default function Home() {
                 onRefreshAI={handleRefreshAI}
                 isAIRefreshing={isAIRefreshing}
                 hasAIError={aiError}
+                newlyCreatedTask={newlyCreatedTask}
+                onClearNewTask={() => setNewlyCreatedTask(null)}
               />
               <MonetizationDashboard />
               <WeeklyOverview

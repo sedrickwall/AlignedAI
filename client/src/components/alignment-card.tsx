@@ -12,6 +12,8 @@ interface AlignmentCardProps {
   onTaskAdd: (title: string) => void;
   onTaskUpdate: (taskId: string, title: string) => void;
   onTaskDelete: (taskId: string) => void;
+  newlyCreatedTask?: Task | null;
+  onClearNewTask?: () => void;
 }
 
 export function AlignmentCard({
@@ -22,6 +24,8 @@ export function AlignmentCard({
   onTaskAdd,
   onTaskUpdate,
   onTaskDelete,
+  newlyCreatedTask,
+  onClearNewTask,
 }: AlignmentCardProps) {
   return (
     <Card className="shadow-md">
@@ -40,6 +44,8 @@ export function AlignmentCard({
           onAdd={onTaskAdd}
           onUpdate={onTaskUpdate}
           onDelete={onTaskDelete}
+          newlyCreatedTask={newlyCreatedTask}
+          onClearNewTask={onClearNewTask}
         />
       </CardContent>
     </Card>

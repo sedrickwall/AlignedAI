@@ -30,6 +30,8 @@ interface DailyDashboardProps {
   onRefreshAI: () => void;
   isAIRefreshing: boolean;
   hasAIError: boolean;
+  newlyCreatedTask?: Task | null;
+  onClearNewTask?: () => void;
 }
 
 export function DailyDashboard({
@@ -51,6 +53,8 @@ export function DailyDashboard({
   onRefreshAI,
   isAIRefreshing,
   hasAIError,
+  newlyCreatedTask,
+  onClearNewTask,
 }: DailyDashboardProps) {
   return (
     <section className="mb-8">
@@ -74,6 +78,8 @@ export function DailyDashboard({
             onTaskAdd={onTaskAdd}
             onTaskUpdate={onTaskUpdate}
             onTaskDelete={onTaskDelete}
+            newlyCreatedTask={newlyCreatedTask}
+            onClearNewTask={onClearNewTask}
           />
         </div>
         <div className="space-y-4">
