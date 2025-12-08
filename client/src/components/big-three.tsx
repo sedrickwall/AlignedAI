@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TaskDiscernmentButton } from "@/components/task-discernment";
+import { TaskDiscernmentButton, TaskDiscernmentDialog } from "@/components/task-discernment";
 import type { Task } from "@shared/schema";
 import { Target, Plus, X, Pencil, Check } from "lucide-react";
 
@@ -19,6 +19,23 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
   const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [pendingDiscernmentTitle, setPendingDiscernmentTitle] = useState<string | null>(null);
+  const [discernmentTask, setDiscernmentTask] = useState<Task | null>(null);
+  const previousTasksRef = useRef<Task[]>(tasks);
+
+  useEffect(() => {
+    if (pendingDiscernmentTitle) {
+      const newTask = tasks.find(
+        t => t.title === pendingDiscernmentTitle && 
+        !previousTasksRef.current.some(prev => prev.id === t.id)
+      );
+      if (newTask) {
+        setDiscernmentTask(newTask);
+        setPendingDiscernmentTitle(null);
+      }
+    }
+    previousTasksRef.current = tasks;
+  }, [tasks, pendingDiscernmentTitle]);
 
   const handleStartEdit = (task: Task) => {
     setEditingId(task.id);
@@ -40,7 +57,9 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
 
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
-      onAdd(newTaskTitle.trim());
+      const title = newTaskTitle.trim();
+      setPendingDiscernmentTitle(title);
+      onAdd(title);
       setNewTaskTitle("");
       setIsAdding(false);
     }
@@ -190,6 +209,15 @@ export function BigThree({ tasks, onToggle, onAdd, onUpdate, onDelete }: BigThre
           </li>
         )}
       </ul>
+
+      {discernmentTask && (
+        <TaskDiscernmentDialog
+          task={discernmentTask}
+          isOpen={!!discernmentTask}
+          onClose={() => setDiscernmentTask(null)}
+          autoEvaluate={true}
+        />
+      )}
     </div>
   );
 }

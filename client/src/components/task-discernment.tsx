@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,6 +42,7 @@ interface TaskDiscernmentProps {
   task: Task;
   onClose: () => void;
   isOpen: boolean;
+  autoEvaluate?: boolean;
 }
 
 const decisionLabels: Record<string, { label: string; color: string }> = {
@@ -59,8 +60,9 @@ const peaceLabels: Record<string, { label: string; icon: React.ReactNode }> = {
   unclear: { label: "Unclear - pray about it", icon: <Brain className="h-4 w-4 text-muted-foreground" /> },
 };
 
-export function TaskDiscernmentDialog({ task, onClose, isOpen }: TaskDiscernmentProps) {
+export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = false }: TaskDiscernmentProps) {
   const [result, setResult] = useState<TaskDiscernmentResult | null>(null);
+  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
   const evaluateMutation = useMutation({
     mutationFn: async () => {
@@ -72,12 +74,20 @@ export function TaskDiscernmentDialog({ task, onClose, isOpen }: TaskDiscernment
     },
   });
 
+  useEffect(() => {
+    if (isOpen && autoEvaluate && !hasAutoTriggered && !result && !evaluateMutation.isPending) {
+      setHasAutoTriggered(true);
+      evaluateMutation.mutate();
+    }
+  }, [isOpen, autoEvaluate, hasAutoTriggered, result, evaluateMutation]);
+
   const handleEvaluate = () => {
     evaluateMutation.mutate();
   };
 
   const handleClose = () => {
     setResult(null);
+    setHasAutoTriggered(false);
     onClose();
   };
 
