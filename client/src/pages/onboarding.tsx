@@ -541,14 +541,25 @@ export default function Onboarding() {
   // LOAD PROGRESS FROM FIRESTORE
   //-----------------------------------------------------
 
-  const { data: progress, isLoading: progressLoading } = useQuery({
+  const { data: progress, isLoading: progressLoading, error: progressError } = useQuery({
     queryKey: ["onboarding-progress", user?.uid],
     enabled: !!user,
     queryFn: async () => {
       if (!user) return null;
-      return await getOnboardingProgress(user.uid);
+      try {
+        return await getOnboardingProgress(user.uid);
+      } catch (err) {
+        console.error("Failed to load onboarding progress:", err);
+        // Return default state if Firestore fails
+        return { onboardingComplete: false, currentStep: 1 };
+      }
     },
   });
+
+  // Log any errors for debugging
+  if (progressError) {
+    console.error("Onboarding progress query error:", progressError);
+  }
 
   //-----------------------------------------------------
   // WHEN FIRESTORE PROGRESS IS LOADED, SYNC STEP

@@ -39,19 +39,29 @@ function AuthenticatedRoutes() {
   const { user } = useAuth(); // Firebase user
 
   // Load Firestore onboarding progress once we have a user
-  const { data: onboardingProgress, isLoading: isOnboardingLoading } =
+  const { data: onboardingProgress, isLoading: isOnboardingLoading, error: onboardingError } =
     useQuery<FirestoreOnboardingProgress>({
       queryKey: ["onboarding-progress", user?.uid],
       enabled: !!user,
       queryFn: async () => {
         if (!user) throw new Error("No user");
-        return getOnboardingProgress(user.uid);
-        
+        try {
+          return await getOnboardingProgress(user.uid);
+        } catch (err) {
+          console.error("Failed to load onboarding progress from Firestore:", err);
+          // Return default state if Firestore fails
+          return { onboardingComplete: false, currentStep: 1 };
+        }
       },
     });
 
   if (isOnboardingLoading) {
     return <LoadingScreen />;
+  }
+
+  // Log any errors for debugging
+  if (onboardingError) {
+    console.error("Onboarding query error:", onboardingError);
   }
 
   const needsOnboarding = !onboardingProgress?.onboardingComplete;
