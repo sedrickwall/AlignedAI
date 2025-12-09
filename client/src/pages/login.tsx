@@ -1,8 +1,8 @@
 // client/src/pages/login.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,18 +16,24 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
+  // ---------------------------
+  // EMAIL PASSWORD LOGIN
+  // ---------------------------
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
+
       toast({
         title: "Welcome back",
         description: "Let’s get you aligned for today.",
       });
-      navigate("/"); // App.tsx will gate you into onboarding or home
+
+      navigate("/");
     } catch (err: any) {
       console.error(err);
       toast({
@@ -37,6 +43,32 @@ export default function Login() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // ---------------------------
+  // GOOGLE LOGIN
+  // ---------------------------
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+
+      toast({
+        title: "Signed in",
+        description: "Welcome to Aligned.",
+      });
+
+      navigate("/");
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Google Login failed",
+        description: err.message || "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -53,6 +85,7 @@ export default function Login() {
             </p>
           </div>
 
+          {/* EMAIL LOGIN */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -86,6 +119,28 @@ export default function Login() {
               {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
+
+          {/* OR DIVIDER */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* GOOGLE SIGN-IN BUTTON */}
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 py-2"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              alt="Google"
+              className="h-4 w-4"
+            />
+            {googleLoading ? "Connecting..." : "Continue with Google"}
+          </Button>
 
           <p className="text-xs text-center text-muted-foreground">
             Don&apos;t have an account yet?{" "}
