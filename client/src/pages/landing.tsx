@@ -11,9 +11,9 @@ export default function Landing() {
             <Sparkles className="h-6 w-6 text-primary" />
             <span className="text-xl font-semibold tracking-tight">Aligned</span>
           </div>
-          <Button asChild data-testid="button-login">
-            <a href="/api/login">Sign In</a>
-          </Button>
+          <button onClick={() => navigate("/login")} className="btn">
+            Sign In
+          </button>
         </div>
       </header>
 
@@ -27,9 +27,9 @@ export default function Landing() {
               A faith-centered planning tool designed for multi-gifted women who want to align their daily activities with their values and long-term goals.
             </p>
             // inside Landing header
-            <Button asChild data-testid="button-login">
-              <a href="/login">Sign In</a>
-            </Button>
+            <button onClick={() => navigate("/login")} className="btn">
+              Sign In
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
