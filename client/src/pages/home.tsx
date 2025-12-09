@@ -9,6 +9,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { EnergyLevel, Task, Pillar, TimeBlock, Reflection } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import LogoutButton from "@/components/logout-button";
 
 interface DailyData {
   energyLevel: EnergyLevel;
@@ -264,12 +265,21 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Header */}
         <Header />
+
+        {/* Logout button aligned to the right */}
+        <div className="flex justify-end mb-4">
+          <LogoutButton />
+        </div>
+
         <main>
           {isLoading ? (
             <DashboardSkeleton />
           ) : dailyData && weeklyData ? (
             <div className="space-y-6 lg:space-y-8">
+
               <DailyDashboard
                 verse={dailyData.verse}
                 energyLevel={dailyData.energyLevel}
@@ -292,7 +302,9 @@ export default function Home() {
                 newlyCreatedTask={newlyCreatedTask}
                 onClearNewTask={() => setNewlyCreatedTask(null)}
               />
+
               <MonetizationDashboard />
+
               <WeeklyOverview
                 pillars={weeklyData.pillars}
                 focusStatement={weeklyData.focusStatement}
@@ -302,6 +314,7 @@ export default function Home() {
                 onReflectionSave={handleReflectionSave}
                 isReflectionSaving={reflectionMutation.isPending}
               />
+
             </div>
           ) : (
             <div className="text-center py-12">
@@ -309,6 +322,7 @@ export default function Home() {
             </div>
           )}
         </main>
+
       </div>
     </div>
   );

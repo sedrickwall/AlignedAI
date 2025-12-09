@@ -1,16 +1,24 @@
+// client/src/App.tsx
 import { Switch, Route, useLocation, Redirect } from "wouter";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { useAuth } from "@/hooks/useAuth";
-import NotFound from "@/pages/not-found";
+
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
 import Onboarding from "@/pages/onboarding";
-import { Skeleton } from "@/components/ui/skeleton";
+import Signup from "@/pages/signup";
+import Login from "@/pages/login";
+import NotFound from "@/pages/not-found";
+
 import type { OnboardingProgress } from "@shared/schema";
+import { getOnboardingProgress } from "@/lib/onboardingFirebase";
 
 function LoadingScreen() {
   return (
@@ -26,10 +34,21 @@ function LoadingScreen() {
 
 function AuthenticatedRoutes() {
   const [location] = useLocation();
-  
-  const { data: onboardingProgress, isLoading: isOnboardingLoading } = useQuery<OnboardingProgress>({
-    queryKey: ["/api/onboarding/progress"],
-  });
+  const { user } = useAuth(); // Firebase user
+
+  // Load Firestore onboarding progress once we have a user
+  const { data: onboardingProgress, isLoading: isOnboardingLoading } =
+    useQuery<OnboardingProgress>({
+      queryKey: ["onboarding-progress", user?.uid],
+      enabled: !!user,
+      queryFn: async () => {
+        if (!user) {
+          // This won't be called if enabled === false, but keeps TS happy
+          throw new Error("No user");
+        }
+        return getOnboardingProgress(user.uid);
+      },
+    });
 
   if (isOnboardingLoading) {
     return <LoadingScreen />;
@@ -62,6 +81,8 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/login" component={Login} />
         <Route component={NotFound} />
       </Switch>
     );

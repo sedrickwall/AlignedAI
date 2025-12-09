@@ -26,8 +26,9 @@ export default function Landing() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
               A faith-centered planning tool designed for multi-gifted women who want to align their daily activities with their values and long-term goals.
             </p>
-            <Button size="lg" asChild data-testid="button-get-started">
-              <a href="/api/login">Get Started</a>
+            // inside Landing header
+            <Button asChild data-testid="button-login">
+              <a href="/login">Sign In</a>
             </Button>
           </div>
 
