@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage, getToday, getWeekStart } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./replitAuth";
+import { firebaseAuth } from "./firebaseAuth";
 import { getAIPrioritization, generateMonetizationPlan, evaluateTask } from "./ai";
 import { z } from "zod";
 import type { EnergyLevel } from "@shared/schema";
@@ -104,7 +105,7 @@ export async function registerRoutes(
   await setupAuth(app);
 
   // Auth routes
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+  app.get("/api/auth/user", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -122,7 +123,7 @@ export async function registerRoutes(
   });
 
   // Daily alignment endpoints
-  app.get("/api/daily", isAuthenticated, async (req: any, res) => {
+  app.get("/api/daily", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const today = getToday();
@@ -149,7 +150,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/daily/energy", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/daily/energy", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = energyLevelSchema.safeParse(req.body.level);
@@ -172,7 +173,7 @@ export async function registerRoutes(
   });
 
   // Task endpoints
-  app.get("/api/tasks", isAuthenticated, async (req: any, res) => {
+  app.get("/api/tasks", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const date = (req.query.date as string) || getToday();
@@ -184,7 +185,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
+  app.post("/api/tasks", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = createTaskSchema.safeParse(req.body);
@@ -210,7 +211,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/tasks/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/tasks/:id", firebaseAuth, async (req: any, res) => {
     try {
       const result = updateTaskSchema.safeParse(req.body);
       if (!result.success) {
@@ -228,7 +229,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/tasks/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/tasks/:id", firebaseAuth, async (req: any, res) => {
     try {
       const deleted = await storage.deleteTask(req.params.id);
       if (!deleted) {
@@ -242,7 +243,7 @@ export async function registerRoutes(
   });
 
   // Time block endpoints
-  app.get("/api/schedule", isAuthenticated, async (req: any, res) => {
+  app.get("/api/schedule", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const date = (req.query.date as string) || getToday();
@@ -254,7 +255,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/schedule", isAuthenticated, async (req: any, res) => {
+  app.post("/api/schedule", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = createTimeBlockSchema.safeParse(req.body);
@@ -278,7 +279,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/schedule/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/schedule/:id", firebaseAuth, async (req: any, res) => {
     try {
       const result = updateTimeBlockSchema.safeParse(req.body);
       if (!result.success) {
@@ -296,7 +297,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/schedule/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/schedule/:id", firebaseAuth, async (req: any, res) => {
     try {
       const deleted = await storage.deleteTimeBlock(req.params.id);
       if (!deleted) {
@@ -310,7 +311,7 @@ export async function registerRoutes(
   });
 
   // Weekly endpoints
-  app.get("/api/weekly", isAuthenticated, async (req: any, res) => {
+  app.get("/api/weekly", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const weekStart = getWeekStart();
@@ -332,7 +333,7 @@ export async function registerRoutes(
   });
 
   // Pillar endpoints
-  app.patch("/api/pillars/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/pillars/:id", firebaseAuth, async (req: any, res) => {
     try {
       const result = updatePillarSchema.safeParse(req.body);
       if (!result.success) {
@@ -351,7 +352,7 @@ export async function registerRoutes(
   });
 
   // Weekly focus endpoints
-  app.patch("/api/weekly/focus", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/weekly/focus", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = updateWeeklyFocusSchema.safeParse(req.body);
@@ -375,7 +376,7 @@ export async function registerRoutes(
   });
 
   // Reflection endpoints
-  app.get("/api/reflections", isAuthenticated, async (req: any, res) => {
+  app.get("/api/reflections", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const weekStart = (req.query.weekStart as string) || getWeekStart();
@@ -387,7 +388,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/reflections", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/reflections", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = updateReflectionSchema.safeParse(req.body);
@@ -413,7 +414,7 @@ export async function registerRoutes(
   });
 
   // AI Prioritization endpoint
-  app.get("/api/ai/prioritize", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai/prioritize", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const today = getToday();
@@ -443,7 +444,7 @@ export async function registerRoutes(
   // ========== ONBOARDING ENDPOINTS ==========
 
   // Get onboarding progress
-  app.get("/api/onboarding/progress", isAuthenticated, async (req: any, res) => {
+  app.get("/api/onboarding/progress", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const progress = await storage.getOnboardingProgress(userId);
@@ -455,7 +456,7 @@ export async function registerRoutes(
   });
 
   // Update onboarding progress
-  app.patch("/api/onboarding/progress", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/onboarding/progress", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = onboardingProgressSchema.safeParse(req.body);
@@ -476,7 +477,7 @@ export async function registerRoutes(
 
   // ========== IDENTITY PROFILE ENDPOINTS ==========
 
-  app.get("/api/profile/identity", isAuthenticated, async (req: any, res) => {
+  app.get("/api/profile/identity", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const profile = await storage.getIdentityProfile(userId);
@@ -487,7 +488,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/profile/identity", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/profile/identity", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = identityProfileSchema.safeParse(req.body);
@@ -508,7 +509,7 @@ export async function registerRoutes(
 
   // ========== PURPOSE PROFILE ENDPOINTS ==========
 
-  app.get("/api/profile/purpose", isAuthenticated, async (req: any, res) => {
+  app.get("/api/profile/purpose", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const profile = await storage.getPurposeProfile(userId);
@@ -519,7 +520,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/profile/purpose", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/profile/purpose", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = purposeProfileSchema.safeParse(req.body);
@@ -540,7 +541,7 @@ export async function registerRoutes(
 
   // ========== SEASON PILLARS ENDPOINTS ==========
 
-  app.get("/api/profile/season-pillars", isAuthenticated, async (req: any, res) => {
+  app.get("/api/profile/season-pillars", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const pillars = await storage.getSeasonPillars(userId);
@@ -551,7 +552,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/profile/season-pillars", isAuthenticated, async (req: any, res) => {
+  app.post("/api/profile/season-pillars", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = seasonPillarSchema.safeParse(req.body);
@@ -572,7 +573,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/profile/season-pillars/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/profile/season-pillars/:id", firebaseAuth, async (req: any, res) => {
     try {
       const result = seasonPillarSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -590,7 +591,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/profile/season-pillars/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/profile/season-pillars/:id", firebaseAuth, async (req: any, res) => {
     try {
       const deleted = await storage.deleteSeasonPillar(req.params.id);
       if (!deleted) {
@@ -605,7 +606,7 @@ export async function registerRoutes(
 
   // ========== VISION MAP ENDPOINTS ==========
 
-  app.get("/api/profile/vision", isAuthenticated, async (req: any, res) => {
+  app.get("/api/profile/vision", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const year = parseInt(req.query.year as string) || new Date().getFullYear();
@@ -617,7 +618,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/profile/vision", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/profile/vision", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = visionMapSchema.safeParse(req.body);
@@ -638,7 +639,7 @@ export async function registerRoutes(
 
   // ========== CAPACITY PROFILE ENDPOINTS ==========
 
-  app.get("/api/profile/capacity", isAuthenticated, async (req: any, res) => {
+  app.get("/api/profile/capacity", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const profile = await storage.getCapacityProfile(userId);
@@ -649,7 +650,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/profile/capacity", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/profile/capacity", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const result = capacityProfileSchema.safeParse(req.body);
@@ -671,7 +672,7 @@ export async function registerRoutes(
   // ========== MONETIZATION ENGINE ENDPOINTS ==========
 
   // Get current monetization recommendation
-  app.get("/api/ai/monetization", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai/monetization", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const year = new Date().getFullYear();
@@ -686,7 +687,7 @@ export async function registerRoutes(
   });
 
   // Generate new monetization recommendation
-  app.post("/api/ai/monetization/generate", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/monetization/generate", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const year = new Date().getFullYear();
@@ -729,7 +730,7 @@ export async function registerRoutes(
   // ========== TASK DISCERNMENT ENGINE ENDPOINTS ==========
 
   // Evaluate a single task
-  app.post("/api/ai/task/:id/evaluate", isAuthenticated, async (req: any, res) => {
+  app.post("/api/ai/task/:id/evaluate", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const taskId = req.params.id;
@@ -784,7 +785,7 @@ export async function registerRoutes(
   });
 
   // Get task assessment
-  app.get("/api/ai/task/:id/assessment", isAuthenticated, async (req: any, res) => {
+  app.get("/api/ai/task/:id/assessment", firebaseAuth, async (req: any, res) => {
     try {
       const taskId = req.params.id;
       const assessment = await storage.getTaskAssessment(taskId);
@@ -797,7 +798,7 @@ export async function registerRoutes(
 
   // ========== GET ALL ONBOARDING DATA ==========
 
-  app.get("/api/onboarding/all", isAuthenticated, async (req: any, res) => {
+  app.get("/api/onboarding/all", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const year = new Date().getFullYear();
