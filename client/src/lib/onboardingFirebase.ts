@@ -1,5 +1,5 @@
 // client/src/lib/onboardingFirebase.ts
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 export interface FirestoreOnboardingProgress {
@@ -14,6 +14,9 @@ export interface FirestoreOnboardingProgress {
   updatedAt?: any;
 }
 
+// ------------------------------------------------------
+// GET PROGRESS
+// ------------------------------------------------------
 export async function getOnboardingProgress(
   uid: string
 ): Promise<FirestoreOnboardingProgress> {
@@ -21,46 +24,53 @@ export async function getOnboardingProgress(
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    // default: not onboarded, start at step 1
+    // Default structure when missing
     return {
       onboardingComplete: false,
       currentStep: 1,
+      identityComplete: false,
+      purposeComplete: false,
+      pillarsComplete: false,
+      visionComplete: false,
+      capacityComplete: false,
     };
   }
 
-  const data = snap.data() as FirestoreOnboardingProgress;
-
-  // Safety: ensure the flag exists
-  if (typeof data.onboardingComplete !== "boolean") {
-    data.onboardingComplete = false;
-  }
-
-  return data;
+  return snap.data() as FirestoreOnboardingProgress;
 }
 
+// ------------------------------------------------------
+// UPDATE PROGRESS
+// ------------------------------------------------------
 export async function updateOnboardingProgress(
   uid: string,
-  data: Partial<FirestoreOnboardingProgress>
+  updates: Partial<FirestoreOnboardingProgress>
 ) {
   const ref = doc(db, "onboardingProgress", uid);
+
   await setDoc(
     ref,
     {
-      ...data,
+      ...updates,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
   );
+
+  return true;
 }
 
+// ------------------------------------------------------
+// MARK COMPLETE
+// ------------------------------------------------------
 export async function markOnboardingComplete(uid: string) {
   const ref = doc(db, "onboardingProgress", uid);
-  await setDoc(
-    ref,
-    {
-      onboardingComplete: true,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+
+  await updateDoc(ref, {
+    onboardingComplete: true,
+    capacityComplete: true,
+    updatedAt: serverTimestamp(),
+  });
+
+  return true;
 }
