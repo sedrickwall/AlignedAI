@@ -17,7 +17,10 @@ import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
-import { getOnboardingProgress, type FirestoreOnboardingProgress } from "@/lib/onboardingFirebase";
+import {
+    getOnboardingProgress,
+    type FirestoreOnboardingProgress
+  } from "@/lib/onboardingFirebase";
 
 function LoadingScreen() {
   return (
@@ -43,6 +46,7 @@ function AuthenticatedRoutes() {
       queryFn: async () => {
         if (!user) throw new Error("No user");
         return getOnboardingProgress(user.uid);
+        
       },
     });
 
