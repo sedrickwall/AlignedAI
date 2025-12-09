@@ -36,12 +36,13 @@ import type {
   CapacityProfile,
 } from "@shared/schema";
 
-import { auth } from "@/lib/firebaseAuth"; // your firebase auth file
 import {
   getOnboardingProgress,
   updateOnboardingProgress,
   markOnboardingComplete,
-} from "@/lib/onboardingFirebase"; // we created these yesterday
+} from "@/lib/onboardingFirebase";
+import { useAuth } from "@/hooks/useAuth";
+
 
 //-----------------------------------------------------
 // STEP INFO
@@ -218,8 +219,8 @@ function PurposeStep({
   const [whoToBlessing, setWhoToBlessing] = useState(
     data?.whoToBlessing || []
   );
-  const [generosityTargets, setGenerosityTargets] = useState(
-    data?.generosityTargets || {
+  const [generosityTargets, setGenerosityTargets] = useState<Record<string, number>>(
+    (data?.generosityTargets as Record<string, number>) ?? {
       lovedOnes: 25,
       strangers: 25,
       community: 25,
@@ -367,8 +368,8 @@ function VisionStep({
 }) {
   const currentYear = new Date().getFullYear();
   const [yearVision, setYearVision] = useState(data?.yearVision || "");
-  const [quarterlyOutcomes, setQuarterlyOutcomes] = useState(
-    data?.quarterlyOutcomes || {
+  const [quarterlyOutcomes, setQuarterlyOutcomes] = useState<Record<string, string>>(
+    (data?.quarterlyOutcomes as Record<string, string>) ?? {
       Q1: "",
       Q2: "",
       Q3: "",
@@ -505,9 +506,15 @@ function CapacityStep({
 export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [pendingData, setPendingData] = useState({
+  const [pendingData, setPendingData] = useState<{
+    identity: Partial<IdentityProfile>;
+    purpose: Partial<PurposeProfile>;
+    vision: Partial<VisionMap>;
+    capacity: Partial<CapacityProfile>;
+  }>({
     identity: {},
     purpose: {},
     vision: {},
@@ -518,7 +525,15 @@ export default function Onboarding() {
   // LOAD ALL ONBOARDING DATA FROM SERVER
   //-----------------------------------------------------
 
-  const { data, isLoading: apiLoading } = useQuery({
+  interface OnboardingAllData {
+    identity: IdentityProfile | null;
+    purpose: PurposeProfile | null;
+    seasonPillars: SeasonPillar[];
+    vision: VisionMap | null;
+    capacity: CapacityProfile | null;
+  }
+
+  const { data, isLoading: apiLoading } = useQuery<OnboardingAllData>({
     queryKey: ["/api/onboarding/all"],
   });
 
@@ -527,9 +542,9 @@ export default function Onboarding() {
   //-----------------------------------------------------
 
   const { data: progress, isLoading: progressLoading } = useQuery({
-    queryKey: ["onboarding-progress"],
+    queryKey: ["onboarding-progress", user?.uid],
+    enabled: !!user,
     queryFn: async () => {
-      const user = auth.currentUser;
       if (!user) return null;
       return await getOnboardingProgress(user.uid);
     },
@@ -615,10 +630,9 @@ export default function Onboarding() {
   //-----------------------------------------------------
 
   const updateProgress = async (updates: Partial<OnboardingProgress>) => {
-    const user = auth.currentUser;
     if (!user) return;
     await updateOnboardingProgress(user.uid, updates);
-    queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
+    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", user.uid] });
   };
 
   //-----------------------------------------------------
@@ -680,34 +694,52 @@ export default function Onboarding() {
   const handleComplete = async () => {
     try {
       await saveCurrentStep();
-      const user = auth.currentUser;
-      if (user) {
+
+      await updateProgress({
+        capacityComplete: true,
+        onboardingComplete: true,
+      });
+
+      // ✅ Also mark in Firestore for gating in App.tsx
+      if (user?.uid) {
         await markOnboardingComplete(user.uid);
       }
 
       toast({
         title: "Welcome to Aligned!",
-        description: "Your journey begins now.",
+        description: "Your profile is set up. Let's start your journey.",
       });
-
       setLocation("/");
     } catch (error) {
       toast({
         title: "Error",
-        description: "Could not complete onboarding.",
+        description: "Failed to complete setup. Please try again.",
         variant: "destructive",
       });
     }
   };
+
 
   //-----------------------------------------------------
   // SKIP ONBOARDING
   //-----------------------------------------------------
 
   const handleSkip = async () => {
-    const user = auth.currentUser;
-    if (user) await markOnboardingComplete(user.uid);
-    setLocation("/");
+    try {
+      await updateProgress({ onboardingComplete: true });
+
+      if (user?.uid) {
+        await markOnboardingComplete(user.uid);
+      }
+
+      setLocation("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to skip onboarding. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   //-----------------------------------------------------

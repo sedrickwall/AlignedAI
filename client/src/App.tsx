@@ -17,8 +17,7 @@ import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
-import type { OnboardingProgress } from "@shared/schema";
-import { getOnboardingProgress } from "@/lib/onboardingFirebase";
+import { getOnboardingProgress, type FirestoreOnboardingProgress } from "@/lib/onboardingFirebase";
 
 function LoadingScreen() {
   return (
@@ -38,14 +37,11 @@ function AuthenticatedRoutes() {
 
   // Load Firestore onboarding progress once we have a user
   const { data: onboardingProgress, isLoading: isOnboardingLoading } =
-    useQuery<OnboardingProgress>({
+    useQuery<FirestoreOnboardingProgress>({
       queryKey: ["onboarding-progress", user?.uid],
       enabled: !!user,
       queryFn: async () => {
-        if (!user) {
-          // This won't be called if enabled === false, but keeps TS happy
-          throw new Error("No user");
-        }
+        if (!user) throw new Error("No user");
         return getOnboardingProgress(user.uid);
       },
     });

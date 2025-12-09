@@ -1,79 +1,66 @@
 // client/src/lib/onboardingFirebase.ts
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
-import type { OnboardingProgress } from "@shared/schema";
 
-/**
- * Read onboarding progress for a given Firebase user.
- * Stored in Firestore at: onboardingProgress/{uid}
- */
+export interface FirestoreOnboardingProgress {
+  onboardingComplete: boolean;
+  currentStep?: number;
+  identityComplete?: boolean;
+  purposeComplete?: boolean;
+  pillarsComplete?: boolean;
+  visionComplete?: boolean;
+  capacityComplete?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export async function getOnboardingProgress(
   uid: string
-): Promise<OnboardingProgress> {
+): Promise<FirestoreOnboardingProgress> {
   const ref = doc(db, "onboardingProgress", uid);
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    // Default "not onboarded" state, fill required fields gracefully
+    // default: not onboarded, start at step 1
     return {
-      id: "",
-      userId: uid,
-      createdAt: null,
-      updatedAt: null,
-      currentStep: 1,
-      identityComplete: false,
-      purposeComplete: false,
-      pillarsComplete: false,
-      visionComplete: false,
-      capacityComplete: false,
       onboardingComplete: false,
+      currentStep: 1,
     };
   }
 
-  const data = snap.data() as Partial<OnboardingProgress>;
+  const data = snap.data() as FirestoreOnboardingProgress;
 
-  return {
-    id: data.id ?? "",
-    userId: data.userId ?? uid,
-    createdAt: (data as any).createdAt ?? null,
-    updatedAt: (data as any).updatedAt ?? null,
-    currentStep: data.currentStep ?? 1,
-    identityComplete: data.identityComplete ?? false,
-    purposeComplete: data.purposeComplete ?? false,
-    pillarsComplete: data.pillarsComplete ?? false,
-    visionComplete: data.visionComplete ?? false,
-    capacityComplete: data.capacityComplete ?? false,
-    onboardingComplete: data.onboardingComplete ?? false,
-  };
+  // Safety: ensure the flag exists
+  if (typeof data.onboardingComplete !== "boolean") {
+    data.onboardingComplete = false;
+  }
+
+  return data;
 }
 
-/**
- * Update onboarding progress for the user.
- * You only pass the fields you want to change.
- */
 export async function updateOnboardingProgress(
   uid: string,
-  updates: Partial<OnboardingProgress>
+  data: Partial<FirestoreOnboardingProgress>
 ) {
   const ref = doc(db, "onboardingProgress", uid);
-
   await setDoc(
     ref,
     {
-      ...updates,
-      userId: uid,
+      ...data,
       updatedAt: serverTimestamp(),
     },
     { merge: true }
   );
 }
 
-/**
- * Mark onboarding as complete.
- */
 export async function markOnboardingComplete(uid: string) {
-  await updateOnboardingProgress(uid, {
-    onboardingComplete: true,
-    capacityComplete: true,
-  });
+  const ref = doc(db, "onboardingProgress", uid);
+  await setDoc(
+    ref,
+    {
+      onboardingComplete: true,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
