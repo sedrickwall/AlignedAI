@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
 import { initializeApp, getApps, cert, getApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { storage } from "./storage";
 
 let firebaseApp: App | null = null;
 let firebaseAuth: Auth | null = null;
@@ -55,6 +56,21 @@ export const firebaseAuthMiddleware: RequestHandler = async (req: any, res, next
   
   try {
     const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Upsert user in database so profile data can be saved
+    try {
+      await storage.upsertUser({
+        id: decodedToken.uid,
+        email: decodedToken.email || null,
+        firstName: decodedToken.name?.split(' ')[0] || null,
+        lastName: decodedToken.name?.split(' ').slice(1).join(' ') || null,
+        profileImageUrl: decodedToken.picture || null,
+      });
+    } catch (upsertError: any) {
+      console.error("Failed to upsert user:", upsertError.message);
+      // Continue anyway - user verification succeeded
+    }
+    
     req.user = {
       claims: {
         sub: decodedToken.uid,
