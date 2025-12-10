@@ -561,6 +561,9 @@ export default function Onboarding() {
     console.error("Onboarding progress query error:", progressError);
   }
 
+  console.error("SAVE ERROR:", error);
+
+
   //-----------------------------------------------------
   // WHEN FIRESTORE PROGRESS IS LOADED, SYNC STEP
   //-----------------------------------------------------
