@@ -365,7 +365,7 @@ export default function Onboarding() {
   });
 
   interface OnboardingAllResponse {
-    progress: { currentStep: number; onboardingComplete: boolean };
+    progress: OnboardingProgress | null;
     identity: IdentityProfile | null;
     purpose: PurposeProfile | null;
     seasonPillars: SeasonPillar[];
@@ -378,7 +378,7 @@ export default function Onboarding() {
     enabled: !!user,
   });
 
-  const { data: progressData, isLoading: loadingProgress } = useQuery<{ currentStep: number; onboardingComplete: boolean }>({
+  const { data: progressData, isLoading: loadingProgress } = useQuery<OnboardingProgress | null>({
     queryKey: ["/api/onboarding/progress"],
     enabled: !!user,
   });
@@ -512,7 +512,7 @@ export default function Onboarding() {
   const step = currentStep;
   const progressPercent = (step / 5) * 100;
   const all: OnboardingAllResponse = serverData || {
-    progress: { currentStep: 1, onboardingComplete: false },
+    progress: null,
     identity: null,
     purpose: null,
     seasonPillars: [],
