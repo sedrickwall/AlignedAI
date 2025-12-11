@@ -1,0 +1,62 @@
+21:49:37.251 Running build in Washington, D.C., USA (East) – iad1
+21:49:37.251 Build machine configuration: 2 cores, 8 GB
+21:49:37.536 Cloning github.com/sedrickwall/AlignedAI (Branch: main, Commit: 56139fc)
+21:49:37.997 Cloning completed: 460.000ms
+21:49:38.647 Restored build cache from previous deployment (EcoUv4LUxQS6vR3iJJfvbMnxPfns)
+21:49:39.032 Running "vercel build"
+21:49:39.465 Vercel CLI 49.1.2
+21:49:40.267 Installing dependencies...
+21:49:41.945 
+21:49:41.946 added 2 packages in 1s
+21:49:41.946 
+21:49:41.946 79 packages are looking for funding
+21:49:41.947   run `npm fund` for details
+21:49:42.091 
+21:49:42.092 > rest-express@1.0.0 vite-build
+21:49:42.092 > vite build
+21:49:42.092 
+21:49:42.400 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+21:49:42.466 transforming...
+21:49:43.721 
+21:49:43.721 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+21:49:47.480 [32m✓[39m 1755 modules transformed.
+21:49:47.902 rendering chunks...
+21:49:47.915 computing gzip size...
+21:49:47.935 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  2.51 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+21:49:47.939 [2m../dist/public/[22m[2massets/[22m[35mindex-C5WbFzVt.css  [39m[1m[2m 75.90 kB[22m[1m[22m[2m │ gzip:  12.42 kB[22m
+21:49:47.939 [2m../dist/public/[22m[2massets/[22m[36mindex-D8lzJCgS.js   [39m[1m[33m653.51 kB[39m[22m[2m │ gzip: 180.79 kB[22m
+21:49:47.940 [32m✓ built in 5.50s[39m
+21:49:47.940 [33m
+21:49:47.940 (!) Some chunks are larger than 500 kB after minification. Consider:
+21:49:47.940 - Using dynamic import() to code-split the application
+21:49:47.940 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+21:49:47.940 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+21:49:48.222 Using TypeScript 5.6.3 (local user-provided)
+21:49:53.389 api/onboarding/all.ts(1,52): error TS2307: Cannot find module '@vercel/node' or its corresponding type declarations.
+21:49:53.390 api/onboarding/all.ts(2,24): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'doc'.
+21:49:53.390 api/onboarding/all.ts(2,29): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'getDoc'.
+21:49:53.390 
+21:49:57.878 Using TypeScript 5.6.3 (local user-provided)
+21:49:58.402 api/onboarding/complete.ts(1,52): error TS2307: Cannot find module '@vercel/node' or its corresponding type declarations.
+21:49:58.402 api/onboarding/complete.ts(2,24): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'doc'.
+21:49:58.402 api/onboarding/complete.ts(2,29): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'updateDoc'.
+21:49:58.402 api/onboarding/complete.ts(2,40): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'serverTimestamp'.
+21:49:58.402 
+21:50:01.751 Using TypeScript 5.6.3 (local user-provided)
+21:50:02.098 api/onboarding/get.ts(1,52): error TS2307: Cannot find module '@vercel/node' or its corresponding type declarations.
+21:50:02.098 api/onboarding/get.ts(2,24): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'doc'.
+21:50:02.099 api/onboarding/get.ts(2,29): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'getDoc'.
+21:50:02.099 
+21:50:05.171 Using TypeScript 5.6.3 (local user-provided)
+21:50:05.470 api/onboarding/update.ts(1,52): error TS2307: Cannot find module '@vercel/node' or its corresponding type declarations.
+21:50:05.471 api/onboarding/update.ts(2,24): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'doc'.
+21:50:05.471 api/onboarding/update.ts(2,29): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'setDoc'.
+21:50:05.471 
+21:50:08.827 Using TypeScript 5.6.3 (local user-provided)
+21:50:12.402 Using TypeScript 5.6.3 (local user-provided)
+21:50:12.749 api/evaluate-task.ts(1,52): error TS2307: Cannot find module '@vercel/node' or its corresponding type declarations.
+21:50:12.749 
+21:50:12.983 Build Completed in /vercel/output [33s]
+21:50:13.675 Deploying outputs...
+21:50:23.573 Deployment completed
+21:50:24.186 Creating build cache...
