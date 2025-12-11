@@ -401,6 +401,7 @@ export default function Onboarding() {
       apiRequest("POST", "/api/onboarding/complete", {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
       navigate("/");
     },
   });
