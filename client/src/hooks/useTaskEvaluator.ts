@@ -1,6 +1,8 @@
 // client/src/hooks/useTaskEvaluator.ts
 import { useState } from "react";
-import type { MissionContext, TaskEvaluationResponse } from "../../../shared/ta";
+import type { MissionContext, TaskEvaluationResponse } from "../../../shared/taskEval";
+
+export type { TaskEvaluationResponse };
 
 export function useTaskEvaluator() {
   const [isEvaluating, setIsEvaluating] = useState(false);

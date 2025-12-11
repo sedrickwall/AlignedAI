@@ -6,7 +6,7 @@ import { ResetCard } from "./reset-card";
 import { AISuggestionCard } from "./ai-suggestion-card";
 import type { EnergyLevel, Task, TimeBlock } from "@shared/schema";
 import { useTaskEvaluator, type TaskEvaluationResponse } from "@/hooks/useTaskEvaluator";
-import type { MissionContext } from "../../../shared/taskEval.ts";
+import type { MissionContext } from "../../../shared/taskEval";
 
 
 interface AISuggestion {
