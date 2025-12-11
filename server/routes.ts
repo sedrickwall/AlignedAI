@@ -188,8 +188,10 @@ export async function registerRoutes(
   app.post("/api/tasks", firebaseAuth, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log("Task creation request body:", JSON.stringify(req.body));
       const result = createTaskSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("Task validation errors:", result.error.errors);
         return res.status(400).json({ error: "Invalid task data" });
       }
       
