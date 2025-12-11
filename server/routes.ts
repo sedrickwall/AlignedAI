@@ -34,7 +34,7 @@ const visionMapSchema = z.object({
   yearVision: z.string().optional(),
   quarterlyOutcomes: z.any().optional(),
   monthlyThemes: z.any().optional(),
-  year: z.number(),
+  year: z.number().optional(),
 });
 
 const capacityProfileSchema = z.object({
@@ -672,11 +672,13 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       const result = visionMapSchema.safeParse(req.body);
       if (!result.success) {
+        console.error("Vision validation error:", result.error);
         return res.status(400).json({ error: "Invalid vision map data" });
       }
 
       const visionMap = await storage.upsertVisionMap({
         userId,
+        year: new Date().getFullYear(),
         ...result.data,
       });
       res.json(visionMap);
