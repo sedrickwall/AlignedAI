@@ -44,16 +44,15 @@ function AuthenticatedRoutes() {
   const { user } = useAuth(); // Firebase user
 
   // -------- Load onboarding progress from API --------
-  const { data: progress, isLoading, error } = useQuery<
+  const { data: progress, isLoading } = useQuery<
     FirestoreOnboardingProgress
   >({
-    queryKey: ["onboarding-progress", user?.uid],
+    queryKey: ["onboarding-progress"],
     enabled: !!user,
+    refetchOnMount: "always",
+    staleTime: 0,
     queryFn: async () => {
-      const res = await apiRequest(
-        "GET",
-        `/api/onboarding/get?uid=${user!.uid}`
-      );
+      const res = await apiRequest("GET", "/api/onboarding/get");
       return res.json();
     },
   });
@@ -66,6 +65,12 @@ function AuthenticatedRoutes() {
   const isOnboardingPage = location === "/onboarding";
 
   // -------- Gating Logic --------
+  // If onboarding complete and on onboarding page, redirect to home
+  if (onboardingComplete && isOnboardingPage) {
+    return <Redirect to="/" />;
+  }
+  
+  // If onboarding not complete and not on onboarding page, redirect to onboarding
   if (!onboardingComplete && !isOnboardingPage) {
     return <Redirect to="/onboarding" />;
   }

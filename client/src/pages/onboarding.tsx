@@ -400,11 +400,24 @@ export default function Onboarding() {
     mutationFn: async () =>
       apiRequest("POST", "/api/onboarding/complete", {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
       queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
       navigate("/");
     },
   });
+
+  const handleSkip = async () => {
+    try {
+      await apiRequest("POST", "/api/onboarding/complete", {});
+      queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
+      navigate("/");
+    } catch (err) {
+      toast({
+        title: "Skip failed",
+        description: "Could not skip onboarding. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const saveStepData = async () => {
     try {
@@ -595,6 +608,17 @@ export default function Onboarding() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="text-sm text-muted-foreground underline hover:text-foreground"
+            data-testid="button-skip-onboarding"
+          >
+            Skip for now
+          </button>
+        </div>
       </div>
     </div>
   );
