@@ -1,32 +1,33 @@
 // client/src/App.tsx
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useAuth } from "@/hooks/useAuth";
 
 import Home from "@/pages/home";
-import Landing from "@/pages/landing";
 import Onboarding from "@/pages/onboarding";
-import Signup from "@/pages/signup";
+import Landing from "@/pages/landing";
 import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 import NotFound from "@/pages/not-found";
 
-import {
-    getOnboardingProgress,
-    type FirestoreOnboardingProgress
-  } from "@/lib/onboardingFirebase";
+import type { FirestoreOnboardingProgress } from "@/lib/onboardingFirebase";
+
+// -----------------------------------------------------
+// LOADING SCREEN
+// -----------------------------------------------------
 
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="space-y-4 w-full max-w-md px-4">
-        <Skeleton className="h-8 w-48 mx-auto" />
+      <div className="space-y-3 w-full max-w-md px-4">
+        <Skeleton className="h-8 w-44 mx-auto" />
         <Skeleton className="h-4 w-64 mx-auto" />
         <Skeleton className="h-32 w-full" />
       </div>
@@ -34,43 +35,42 @@ function LoadingScreen() {
   );
 }
 
+// -----------------------------------------------------
+// AUTHENTICATED ROUTES
+// -----------------------------------------------------
+
 function AuthenticatedRoutes() {
   const [location] = useLocation();
   const { user } = useAuth(); // Firebase user
 
-  // Load Firestore onboarding progress once we have a user
-  const { data: onboardingProgress, isLoading: isOnboardingLoading, error: onboardingError } =
-    useQuery<FirestoreOnboardingProgress>({
-      queryKey: ["onboarding-progress", user?.uid],
-      enabled: !!user,
-      queryFn: async () => {
-        if (!user) throw new Error("No user");
-        try {
-          return await getOnboardingProgress(user.uid);
-        } catch (err) {
-          console.error("Failed to load onboarding progress from Firestore:", err);
-          // Return default state if Firestore fails
-          return { onboardingComplete: false, currentStep: 1 };
-        }
-      },
-    });
+  // -------- Load onboarding progress from API --------
+  const { data: progress, isLoading, error } = useQuery<
+    FirestoreOnboardingProgress
+  >({
+    queryKey: ["onboarding-progress", user?.uid],
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await apiRequest(
+        "GET",
+        `/api/onboarding/get?uid=${user!.uid}`
+      );
+      return res.json();
+    },
+  });
 
-  if (isOnboardingLoading) {
-    return <LoadingScreen />;
-  }
+  // Still loading?
+  if (isLoading) return <LoadingScreen />;
 
-  // Log any errors for debugging
-  if (onboardingError) {
-    console.error("Onboarding query error:", onboardingError);
-  }
+  // If API errors → treat as onboarding NOT complete (safe fallback)
+  const onboardingComplete = progress?.onboardingComplete === true;
+  const isOnboardingPage = location === "/onboarding";
 
-  const needsOnboarding = !onboardingProgress?.onboardingComplete;
-  const isOnOnboardingPage = location === "/onboarding";
-
-  if (needsOnboarding && !isOnOnboardingPage) {
+  // -------- Gating Logic --------
+  if (!onboardingComplete && !isOnboardingPage) {
     return <Redirect to="/onboarding" />;
   }
 
+  // -------- Normal Application Routing --------
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -80,13 +80,16 @@ function AuthenticatedRoutes() {
   );
 }
 
+// -----------------------------------------------------
+// ROUTER WRAPPER
+// -----------------------------------------------------
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  if (isLoading) return <LoadingScreen />;
 
+  // ---------- Unauthenticated Visitors ----------
   if (!isAuthenticated) {
     return (
       <Switch>
@@ -98,10 +101,15 @@ function Router() {
     );
   }
 
+  // ---------- Authenticated Users ----------
   return <AuthenticatedRoutes />;
 }
 
-function App() {
+// -----------------------------------------------------
+// ROOT APP
+// -----------------------------------------------------
+
+export default function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
@@ -113,5 +121,3 @@ function App() {
     </ThemeProvider>
   );
 }
-
-export default App;

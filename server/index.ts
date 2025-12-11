@@ -1,98 +1,131 @@
+// server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
+import { registerRoutes } from "./routes.js";
+import { serveStatic } from "./static.js";
 import { createServer } from "http";
+import cors from "cors";
+
+import { evaluateTaskAgainstMission } from "./taskAnalyzer.js";   // FIXED
+import type { MissionContext } from "../shared/taskEval.js";       // FIXED
 
 const app = express();
 const httpServer = createServer(app);
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
+// ------------------------------------------------------
+// 🔧 Middleware
+// ------------------------------------------------------
 
 app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://aligned.vercel.app",
+      /^https:\/\/aligned-.*\.vercel\.app$/ // your preview deployments
+    ],
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
 );
 
 app.use(express.urlencoded({ extended: false }));
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
+declare module "http" {
+  interface IncomingMessage {
+    rawBody?: unknown;
+  }
+}
+
+// ------------------------------------------------------
+// 🧠 Task Evaluation API
+// ------------------------------------------------------
+
+app.post("/api/evaluate-task", async (req, res) => {
+  try {
+    const { task, mission } = req.body as {
+      task: string;
+      mission: MissionContext;
+    };
+
+    if (!task || !mission) {
+      return res.status(400).json({ error: "task and mission are required" });
+    }
+
+    const result = await evaluateTaskAgainstMission(task, mission);
+    return res.json(result);
+  } catch (err: any) {
+    console.error("[/api/evaluate-task] error", err);
+    return res.status(500).json({
+      error: "Failed to evaluate task",
+      details: err.message || String(err),
+    });
+  }
+});
+
+// ------------------------------------------------------
+// 📜 API Logging
+// ------------------------------------------------------
+
+function log(message: string, source = "express") {
+  const formatted = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
-    hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  console.log(`${formatted} [${source}] ${message}`);
 }
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let captured: any;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+  const original = res.json;
+  res.json = function (body, ...args) {
+    captured = body;
+    return original.apply(res, [body, ...args]);
   };
 
   res.on("finish", () => {
-    const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      log(logLine);
+      const duration = Date.now() - start;
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms :: ${JSON.stringify(captured)}`);
     }
   });
 
   next();
 });
 
+// ------------------------------------------------------
+// 🚀 Server Bootstrapping
+// ------------------------------------------------------
+
 (async () => {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
+    const status = err.status || 500;
+    res.status(status).json({ message: err.message || "Internal Server Error" });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import("./vite.js"); // FIXED
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = Number(process.env.PORT || 5000);
+
   httpServer.listen(
     {
       port,
       host: "0.0.0.0",
       reusePort: true,
     },
-    () => {
-      log(`serving on port ${port}`);
-    },
+    () => log(`Serving on port ${port}`)
   );
 })();

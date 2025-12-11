@@ -475,6 +475,55 @@ export async function registerRoutes(
     }
   });
 
+  // POST version for onboarding progress update (for compatibility)
+  app.post("/api/onboarding/update", firebaseAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updates = req.body.updates || req.body;
+      const result = onboardingProgressSchema.safeParse(updates);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid progress data" });
+      }
+
+      const progress = await storage.upsertOnboardingProgress({
+        userId,
+        ...result.data,
+      });
+      res.json(progress);
+    } catch (error) {
+      console.error("Error updating onboarding progress:", error);
+      res.status(500).json({ error: "Failed to update onboarding progress" });
+    }
+  });
+
+  // GET onboarding progress (alternate endpoint)
+  app.get("/api/onboarding/get", firebaseAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const progress = await storage.getOnboardingProgress(userId);
+      res.json(progress || { currentStep: 1, onboardingComplete: false });
+    } catch (error) {
+      console.error("Error fetching onboarding progress:", error);
+      res.status(500).json({ error: "Failed to fetch onboarding progress" });
+    }
+  });
+
+  // Complete onboarding
+  app.post("/api/onboarding/complete", firebaseAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const progress = await storage.upsertOnboardingProgress({
+        userId,
+        onboardingComplete: true,
+        capacityComplete: true,
+      });
+      res.json(progress);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
+    }
+  });
+
   // ========== IDENTITY PROFILE ENDPOINTS ==========
 
   app.get("/api/profile/identity", firebaseAuth, async (req: any, res) => {
