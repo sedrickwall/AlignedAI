@@ -6,13 +6,81 @@ import type {
   TaskEvaluationResponse
 } from "../shared/taskEval.js";
 
+const HF_API_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.3";
+const HF_TOKEN = process.env.HF_TOKEN;
+
+if (!HF_TOKEN) {
+  console.warn("[TaskAnalyzer] Missing HF_TOKEN - will use local analysis only.");
+}
+
+/**
+ * Try HuggingFace API for task analysis
+ */
+async function analyzeTaskWithHF(task: string): Promise<TaskAnalysis | null> {
+  if (!HF_TOKEN) return null;
+
+  const prompt = `<s>[INST] You are a task classifier for Christian productivity. Classify this task and respond with ONLY valid JSON, no other text.
+
+Task: "${task}"
+
+Respond with this exact JSON structure:
+{"type":"errand","urgency":"medium","emotional_weight":5,"strategic_value":5,"short_summary":"brief description"}
+
+Where type is one of: errand, admin, relationship, money, health, spiritual, distraction, maintenance, opportunity, other
+And urgency is: low, medium, or high
+And emotional_weight and strategic_value are numbers 1-10 [/INST]</s>`;
+
+  try {
+    const res = await fetch(HF_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HF_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 150,
+          return_full_text: false,
+        }
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn("[HF] Non-200 response:", res.status);
+      return null;
+    }
+
+    const json = await res.json();
+    const raw = Array.isArray(json) ? json[0]?.generated_text ?? "" : JSON.stringify(json);
+
+    const match = raw.match(/\{[\s\S]*?\}/);
+    if (!match) {
+      console.warn("[HF] Could not parse JSON from response");
+      return null;
+    }
+
+    const parsed = JSON.parse(match[0]);
+
+    return {
+      type: parsed.type ?? "other",
+      urgency: parsed.urgency ?? "medium",
+      emotional_weight: clampNumber(parsed.emotional_weight, 1, 10, 5),
+      strategic_value: clampNumber(parsed.strategic_value, 1, 10, 5),
+      short_summary: parsed.short_summary ?? task,
+    };
+  } catch (err) {
+    console.warn("[HF] API error:", err);
+    return null;
+  }
+}
+
 /**
  * Keyword-based task classification (works offline, no API needed)
  */
 function classifyTaskLocally(task: string): TaskAnalysis {
   const lowerTask = task.toLowerCase();
   
-  // Task type classification based on keywords
   const typePatterns: Record<string, string[]> = {
     spiritual: ["pray", "bible", "church", "worship", "devotion", "scripture", "faith", "god", "jesus", "meditation", "fasting", "sermon"],
     relationship: ["call", "meet", "visit", "text", "email", "friend", "family", "mom", "dad", "wife", "husband", "kid", "child", "lunch", "dinner", "coffee", "date", "love"],
@@ -33,7 +101,6 @@ function classifyTaskLocally(task: string): TaskAnalysis {
     }
   }
 
-  // Urgency detection
   const urgentKeywords = ["urgent", "asap", "now", "today", "deadline", "emergency", "immediately", "critical"];
   const lowUrgencyKeywords = ["someday", "whenever", "maybe", "eventually", "later"];
   
@@ -44,12 +111,10 @@ function classifyTaskLocally(task: string): TaskAnalysis {
     urgency = "low";
   }
 
-  // Emotional weight - higher for relational, spiritual, health tasks
   const highEmotionalTypes = ["relationship", "spiritual", "health"];
   const emotional_weight = highEmotionalTypes.includes(detectedType) ? 7 : 
     detectedType === "distraction" ? 8 : 4;
 
-  // Strategic value based on type
   const strategicValues: Record<string, number> = {
     spiritual: 9,
     relationship: 8,
@@ -95,7 +160,6 @@ export function evaluateMissionImpact(
 
   const urgencyScore = urgency === "high" ? 7 : urgency === "medium" ? 4 : 2;
 
-  // Check if task aligns with Big Three
   const alignedWithBigThree =
     mission.bigThree.length > 0 && mission.bigThree.some((goal) =>
       goal.toLowerCase().includes(short_summary.toLowerCase()) ||
@@ -112,11 +176,8 @@ export function evaluateMissionImpact(
       : 6 - strategic_value / 2;
 
   const delayCost = delayCostBase + urgencyScore * 0.3;
-
   const drain = emotional_weight >= 7 ? emotional_weight : emotional_weight * 0.7;
-
   const oppLoss = mission.impactLevel * (1 - strategic_value / 10);
-
   const MKI = delayCost + drain + oppLoss - (alignmentScore + strategic_value);
 
   let severity: "green" | "yellow" | "red" = "green";
@@ -124,7 +185,6 @@ export function evaluateMissionImpact(
   else if (MKI >= 4) severity = "yellow";
 
   const scriptureRefs: string[] = [];
-
   if (severity === "red") {
     scriptureRefs.push("Luke 10:38-42", "Ephesians 5:15-16");
   } else if (severity === "yellow") {
@@ -159,13 +219,22 @@ export function evaluateMissionImpact(
 
 /**
  * Full pipeline: Task text + mission → analysis + evaluation
- * Uses local keyword-based analysis (no external API needed)
+ * Tries HuggingFace API first, falls back to local analysis if it fails
  */
 export async function evaluateTaskAgainstMission(
   task: string,
   mission: MissionContext
 ): Promise<TaskEvaluationResponse> {
-  const taskAnalysis = classifyTaskLocally(task);
+  // Try API first, fall back to local
+  let taskAnalysis = await analyzeTaskWithHF(task);
+  
+  if (!taskAnalysis) {
+    console.log("[TaskAnalyzer] Using local fallback analysis");
+    taskAnalysis = classifyTaskLocally(task);
+  } else {
+    console.log("[TaskAnalyzer] Using HuggingFace API analysis");
+  }
+
   const missionEvaluation = evaluateMissionImpact(taskAnalysis, mission);
   return { taskAnalysis, missionEvaluation };
 }
