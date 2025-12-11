@@ -8,35 +8,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 import { 
   Sparkles, 
   Target, 
-  Clock, 
-  Heart, 
-  Brain,
+  AlertTriangle,
   CheckCircle2,
-  Calendar,
-  AlertCircle,
-  Loader2
+  XCircle,
+  BookOpen,
+  Loader2,
+  ShieldAlert
 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import type { Task } from "@shared/schema";
-
-interface TaskDiscernmentResult {
-  pillarAlignment: string;
-  monetizationAlignment: boolean;
-  purposeAlignment: boolean;
-  impactScore: number;
-  effortScore: number;
-  energyRequirement: "high-brain" | "low-brain";
-  decision: "do_today" | "do_this_week" | "next_week" | "backlog" | "assign" | "reject";
-  bestTimeSlot: string;
-  assignTo: string | null;
-  peaceCheck: "aligned" | "stressed" | "unclear";
-  reasoning: string;
-}
+import { useTaskEvaluator, type TaskEvaluationResponse } from "@/hooks/useTaskEvaluator";
+import type { MissionContext } from "../../../shared/taskEval";
 
 interface TaskDiscernmentProps {
   task: Task;
@@ -45,44 +29,48 @@ interface TaskDiscernmentProps {
   autoEvaluate?: boolean;
 }
 
-const decisionLabels: Record<string, { label: string; color: string }> = {
-  do_today: { label: "Do Today", color: "bg-green-500/10 text-green-700 border-green-200" },
-  do_this_week: { label: "This Week", color: "bg-blue-500/10 text-blue-700 border-blue-200" },
-  next_week: { label: "Next Week", color: "bg-yellow-500/10 text-yellow-700 border-yellow-200" },
-  backlog: { label: "Save for Later", color: "bg-gray-500/10 text-gray-700 border-gray-200" },
-  assign: { label: "Consider Delegating", color: "bg-purple-500/10 text-purple-700 border-purple-200" },
-  reject: { label: "Let Go", color: "bg-red-500/10 text-red-700 border-red-200" },
+const defaultMissionContext: MissionContext = {
+  dayMission: "Serve the purpose God has given me today with depth, not distraction.",
+  bigThree: [],
+  impactLevel: 7,
+  timeBudgetMinutes: 480,
 };
 
-const peaceLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-  aligned: { label: "Peace in your spirit", icon: <Heart className="h-4 w-4 text-green-600" /> },
-  stressed: { label: "May cause stress", icon: <AlertCircle className="h-4 w-4 text-amber-600" /> },
-  unclear: { label: "Unclear - pray about it", icon: <Brain className="h-4 w-4 text-muted-foreground" /> },
+const severityConfig = {
+  green: { 
+    label: "Mission Aligned", 
+    color: "bg-green-500/10 text-green-700 border-green-200 dark:bg-green-500/20 dark:text-green-400",
+    icon: CheckCircle2
+  },
+  yellow: { 
+    label: "Use Discernment", 
+    color: "bg-yellow-500/10 text-yellow-700 border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400",
+    icon: AlertTriangle
+  },
+  red: { 
+    label: "Mission Killer", 
+    color: "bg-red-500/10 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-400",
+    icon: ShieldAlert
+  },
 };
 
 export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = false }: TaskDiscernmentProps) {
-  const [result, setResult] = useState<TaskDiscernmentResult | null>(null);
+  const [result, setResult] = useState<TaskEvaluationResponse | null>(null);
   const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
-
-  const evaluateMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/ai/task/${task.id}/evaluate`, {});
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setResult(data);
-    },
-  });
+  const { evaluateTask, isEvaluating, error } = useTaskEvaluator();
 
   useEffect(() => {
-    if (isOpen && autoEvaluate && !hasAutoTriggered && !result && !evaluateMutation.isPending) {
+    if (isOpen && autoEvaluate && !hasAutoTriggered && !result && !isEvaluating) {
       setHasAutoTriggered(true);
-      evaluateMutation.mutate();
+      handleEvaluate();
     }
-  }, [isOpen, autoEvaluate, hasAutoTriggered, result, evaluateMutation]);
+  }, [isOpen, autoEvaluate, hasAutoTriggered, result, isEvaluating]);
 
-  const handleEvaluate = () => {
-    evaluateMutation.mutate();
+  const handleEvaluate = async () => {
+    const evalResult = await evaluateTask(task.title, defaultMissionContext);
+    if (evalResult) {
+      setResult(evalResult);
+    }
   };
 
   const handleClose = () => {
@@ -91,13 +79,16 @@ export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = fa
     onClose();
   };
 
+  const severity = result?.missionEvaluation.severity || "green";
+  const SeverityIcon = severityConfig[severity].icon;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Task Discernment
+            Mission Discernment
           </DialogTitle>
           <DialogDescription>
             AI evaluation to help you decide if this task aligns with your calling.
@@ -111,7 +102,7 @@ export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = fa
             </p>
           </div>
 
-          {!result && !evaluateMutation.isPending && (
+          {!result && !isEvaluating && (
             <div className="text-center py-4">
               <p className="text-sm text-muted-foreground mb-4">
                 Get AI guidance on whether this task fits your current season and calling.
@@ -123,10 +114,20 @@ export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = fa
             </div>
           )}
 
-          {evaluateMutation.isPending && (
+          {isEvaluating && (
             <div className="text-center py-8">
               <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-2" />
               <p className="text-sm text-muted-foreground">Discerning alignment...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-md p-3 text-center">
+              <XCircle className="h-5 w-5 text-red-500 mx-auto mb-2" />
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={handleEvaluate}>
+                Try Again
+              </Button>
             </div>
           )}
 
@@ -135,87 +136,116 @@ export function TaskDiscernmentDialog({ task, onClose, isOpen, autoEvaluate = fa
               <div className="flex items-center justify-center gap-2 py-2">
                 <Badge 
                   variant="outline" 
-                  className={`text-sm px-3 py-1 ${decisionLabels[result.decision]?.color || ''}`}
-                  data-testid="badge-decision"
+                  className={`text-sm px-3 py-1.5 ${severityConfig[severity].color}`}
+                  data-testid="badge-severity"
                 >
-                  {decisionLabels[result.decision]?.label || result.decision}
+                  <SeverityIcon className="h-4 w-4 mr-1.5" />
+                  {severityConfig[severity].label}
                 </Badge>
               </div>
 
+              {result.missionEvaluation.missionKiller && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <ShieldAlert className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                        Warning: This could derail your mission today
+                      </p>
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        Mission Killer Index: {result.missionEvaluation.MKI.toFixed(1)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <Target className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-sm text-muted-foreground">Task Type</span>
+                    <Badge variant="secondary" className="ml-2 text-xs capitalize" data-testid="badge-task-type">
+                      {result.taskAnalysis.type}
+                    </Badge>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground flex-1">Pillar Alignment</span>
-                  <Badge variant="secondary" className="text-xs" data-testid="badge-pillar">
-                    {result.pillarAlignment || "None"}
+                  <span className="text-sm text-muted-foreground flex-1 ml-6">Urgency</span>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ${
+                      result.taskAnalysis.urgency === 'high' 
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' 
+                        : result.taskAnalysis.urgency === 'medium'
+                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    }`}
+                    data-testid="badge-urgency"
+                  >
+                    {result.taskAnalysis.urgency}
                   </Badge>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground flex-1 ml-6">Impact Score</span>
-                  <div className="flex items-center gap-2">
-                    <Progress value={result.impactScore * 10} className="w-16 h-2" />
-                    <span className="text-sm font-medium w-6">{result.impactScore}</span>
-                  </div>
+                  <span className="text-sm text-muted-foreground flex-1 ml-6">Strategic Value</span>
+                  <span className="text-sm font-medium">{result.taskAnalysis.strategic_value}/10</span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground flex-1 ml-6">Effort Required</span>
-                  <div className="flex items-center gap-2">
-                    <Progress value={result.effortScore * 10} className="w-16 h-2" />
-                    <span className="text-sm font-medium w-6">{result.effortScore}</span>
-                  </div>
+                  <span className="text-sm text-muted-foreground flex-1 ml-6">Emotional Weight</span>
+                  <span className="text-sm font-medium">{result.taskAnalysis.emotional_weight}/10</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground flex-1">Energy Type</span>
-                  <Badge variant="outline" className="text-xs" data-testid="badge-energy">
-                    {result.energyRequirement === "high-brain" ? "Deep Focus" : "Light Work"}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground flex-1">Best Time</span>
-                  <span className="text-sm text-foreground" data-testid="text-best-time">
-                    {result.bestTimeSlot}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {peaceLabels[result.peaceCheck]?.icon}
-                  <span className="text-sm" data-testid="text-peace-check">
-                    {peaceLabels[result.peaceCheck]?.label || result.peaceCheck}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`h-4 w-4 ${result.purposeAlignment ? 'text-green-600' : 'text-muted-foreground'}`} />
-                  <span className="text-sm">
-                    {result.purposeAlignment ? "Aligns with your purpose" : "May not align with purpose"}
-                  </span>
-                </div>
-
-                {result.monetizationAlignment && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-green-700">Supports income goals</span>
-                  </div>
-                )}
               </div>
 
               <div className="bg-accent/50 rounded-md p-3 border border-accent">
-                <p className="text-sm text-foreground" data-testid="text-reasoning">
-                  {result.reasoning}
+                <p className="text-sm font-medium text-foreground mb-1">Summary</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-summary">
+                  {result.taskAnalysis.short_summary}
                 </p>
               </div>
 
-              {result.assignTo && (
-                <p className="text-sm text-muted-foreground">
-                  Consider delegating to: <span className="font-medium">{result.assignTo}</span>
+              <div className="bg-muted/50 rounded-md p-3">
+                <p className="text-sm font-medium text-foreground mb-1">Reason</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-reason">
+                  {result.missionEvaluation.reason}
                 </p>
+              </div>
+
+              <div className="bg-primary/5 rounded-md p-3 border border-primary/20">
+                <p className="text-sm font-medium text-foreground mb-1">Recommendation</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-recommendation">
+                  {result.missionEvaluation.recommendation}
+                </p>
+              </div>
+
+              {result.missionEvaluation.scriptureRefs.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-md p-3 border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Scripture References</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {result.missionEvaluation.scriptureRefs.map((ref, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="outline" 
+                        className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                        data-testid={`badge-scripture-${idx}`}
+                      >
+                        {ref}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </div>
