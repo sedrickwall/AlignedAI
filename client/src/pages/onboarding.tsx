@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -633,6 +634,9 @@ export default function Onboarding() {
       });
       await markOnboardingComplete(user.uid);
 
+      // Invalidate the cache so App.tsx gets the updated status
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
+
       toast({
         title: "Welcome to Aligned!",
         description: "Your profile is set up. Let's start your journey.",
@@ -654,6 +658,10 @@ export default function Onboarding() {
         onboardingComplete: true,
       });
       await markOnboardingComplete(user.uid);
+      
+      // Invalidate the cache so App.tsx gets the updated status
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
+      
       setLocation("/");
     } catch (error) {
       console.error(error);

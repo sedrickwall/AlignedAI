@@ -1,9 +1,10 @@
+// client/src/pages/signup.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -23,18 +25,35 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function createOnboardingDoc(uid: string) {
-    await setDoc(doc(db, "onboarding", uid), {
-      userId: uid,
-      currentStep: 1,
-      onboardingComplete: false,
-      identityComplete: false,
-      purposeComplete: false,
-      pillarsComplete: false,
-      visionComplete: false,
-      capacityComplete: false,
-      createdAt: serverTimestamp()
-    }, { merge: true });
+  // Shared helper to create onboarding doc in the right shape
+  async function initOnboardingDoc(uid: string) {
+    await setDoc(
+      doc(db, "onboarding", uid),
+      {
+        // top-level flags
+        currentStep: 1,
+        onboardingComplete: false,
+        identityComplete: false,
+        purposeComplete: false,
+        pillarsComplete: false,
+        visionComplete: false,
+        capacityComplete: false,
+
+        // nested progress map (for backward compatibility)
+        progress: {
+          currentStep: 1,
+          onboardingComplete: false,
+          identityComplete: false,
+          purposeComplete: false,
+          pillarsComplete: false,
+          visionComplete: false,
+          capacityComplete: false,
+        },
+
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -48,7 +67,21 @@ export default function Signup() {
         await updateProfile(cred.user, { displayName: fullName });
       }
 
-      await createOnboardingDoc(cred.user.uid);
+      const uid = cred.user.uid;
+
+      // Create basic user profile
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          fullName,
+          email,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Init onboarding doc
+      await initOnboardingDoc(uid);
 
       toast({
         title: "Account created",
@@ -73,8 +106,21 @@ export default function Signup() {
 
     try {
       const cred = await signInWithPopup(auth, googleProvider);
+      const uid = cred.user.uid;
+      const googleName = cred.user.displayName || "";
+      const googleEmail = cred.user.email || "";
 
-      await createOnboardingDoc(cred.user.uid);
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          fullName: googleName,
+          email: googleEmail,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      await initOnboardingDoc(uid);
 
       toast({
         title: "Welcome!",
@@ -99,7 +145,12 @@ export default function Signup() {
       <Card className="w-full max-w-md shadow-lg">
         <CardContent className="p-6 space-y-6">
           <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-semibold">Create your Aligned account</h1>
+            <h1
+              className="text-2xl font-semibold tracking-tight"
+              data-testid="text-signup-title"
+            >
+              Create your Aligned account
+            </h1>
             <p className="text-sm text-muted-foreground">
               Personalized daily rhythms start here.
             </p>
@@ -108,34 +159,84 @@ export default function Signup() {
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Full name</Label>
-              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                data-testid="input-fullname"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                data-testid="input-email"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                data-testid="input-password"
+              />
             </div>
 
-            <Button className="w-full mt-2" disabled={isSubmitting} type="submit">
+            <Button
+              className="w-full mt-2"
+              disabled={isSubmitting}
+              type="submit"
+              data-testid="button-signup"
+            >
               {isSubmitting ? "Creating..." : "Get started"}
             </Button>
           </form>
 
-          <div className="flex items-center gap-3 my-4">
+          <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground">OR</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <Button variant="outline" className="w-full flex items-center justify-center gap-2" disabled={isSubmitting} onClick={handleGoogleSignup}>
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="h-5" />
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+            onClick={handleGoogleSignup}
+            data-testid="button-google-signup"
+          >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              className="h-5"
+              alt="Google"
+            />
             Sign up with Google
           </Button>
+
+          <p className="text-xs text-center text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => navigate("/login")}
+              data-testid="link-login"
+            >
+              Log in
+            </button>
+          </p>
         </CardContent>
       </Card>
     </div>
