@@ -1,24 +1,14 @@
+// client/src/pages/onboarding.tsx
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-
-import type {
-  IdentityProfile,
-  PurposeProfile,
-  SeasonPillar,
-  VisionMap,
-  CapacityProfile,
-  OnboardingProgress,
-} from "@shared/schema";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,32 +24,90 @@ import {
   Battery,
 } from "lucide-react";
 
+import type {
+  IdentityProfile,
+  PurposeProfile,
+  SeasonPillar,
+  VisionMap,
+  CapacityProfile,
+} from "@shared/schema";
+
+import {
+  getOnboardingAll,
+  updateOnboardingProgress,
+  markOnboardingComplete,
+  saveIdentity,
+  savePurpose,
+  saveVision,
+  saveCapacity,
+  saveSeasonPillars,
+  type FirestoreOnboardingDocument,
+} from "@/lib/onboardingFirebase";
+
+import { useAuth } from "@/hooks/useAuth";
+import { auth } from "@/lib/firebase";
+
+//-----------------------------------------------------
+// STEP INFO
+//-----------------------------------------------------
+
 const stepInfo = [
-  { number: 1, title: "Identity", icon: Sparkles },
-  { number: 2, title: "Purpose", icon: Heart },
-  { number: 3, title: "Season Pillars", icon: Target },
-  { number: 4, title: "Vision", icon: Calendar },
-  { number: 5, title: "Capacity", icon: Battery },
+  {
+    number: 1,
+    title: "Your Identity",
+    description: "Discover your God-given gifts and developed skills",
+    icon: Sparkles,
+  },
+  {
+    number: 2,
+    title: "Your Purpose",
+    description: "Define who you're called to serve and bless",
+    icon: Heart,
+  },
+  {
+    number: 3,
+    title: "Season Pillars",
+    description: "Set your focus areas for this season of life",
+    icon: Target,
+  },
+  {
+    number: 4,
+    title: "Your Vision",
+    description: "Map out your year with intentional goals",
+    icon: Calendar,
+  },
+  {
+    number: 5,
+    title: "Your Capacity",
+    description: "Understand your energy and availability",
+    icon: Battery,
+  },
 ];
+
+//-----------------------------------------------------
+// TAG INPUT
+//-----------------------------------------------------
 
 function TagInput({
   value,
   onChange,
   placeholder,
+  testId,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder: string;
+  testId: string;
 }) {
-  const [input, setInput] = useState("");
+  const [inputValue, setInputValue] = useState("");
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && input.trim()) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && inputValue.trim()) {
       e.preventDefault();
-      if (!value.includes(input.trim())) {
-        onChange([...value, input.trim()]);
+      if (!value.includes(inputValue.trim())) {
+        onChange([...value, inputValue.trim()]);
       }
-      setInput("");
+      setInputValue("");
     }
   };
 
@@ -67,221 +115,329 @@ function TagInput({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {value.map((tag) => (
-          <Badge key={tag} variant="secondary">
+          <Badge key={tag} variant="secondary" className="gap-1">
             {tag}
-            <button onClick={() => onChange(value.filter((t) => t !== tag))}>
-              <X className="h-3 w-3 ml-1" />
+            <button
+              type="button"
+              onClick={() => onChange(value.filter((t) => t !== tag))}
+              data-testid={`button-remove-tag-${tag}`}
+            >
+              <X className="h-3 w-3" />
             </button>
           </Badge>
         ))}
       </div>
-
       <Input
-        value={input}
+        value={inputValue}
         placeholder={placeholder}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-        onKeyDown={onKeyDown}
-        data-testid="input-tag"
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        data-testid={testId}
+      />
+      <p className="text-xs text-muted-foreground">Press Enter to add</p>
+    </div>
+  );
+}
+
+//-----------------------------------------------------
+// IDENTITY STEP
+//-----------------------------------------------------
+
+function IdentityStep({
+  data,
+  onUpdate,
+}: {
+  data: Partial<IdentityProfile>;
+  onUpdate: (updates: Partial<IdentityProfile>) => void;
+}) {
+  const [gifts, setGifts] = useState<string[]>(data.gifts ?? []);
+  const [skills, setSkills] = useState<string[]>(data.skills ?? []);
+  const [interests, setInterests] = useState<string[]>(data.interests ?? []);
+  const [passions, setPassions] = useState<string[]>(data.passions ?? []);
+  const [strongestTalent, setStrongestTalent] = useState(
+    data.strongestTalent ?? ""
+  );
+
+  useEffect(() => {
+    onUpdate({ gifts, skills, interests, passions, strongestTalent });
+  }, [gifts, skills, interests, passions, strongestTalent, onUpdate]);
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <Sparkles className="h-12 w-12 mx-auto text-primary mb-4" />
+        <h2 className="text-2xl font-semibold">Discover Your Identity</h2>
+        <p className="text-muted-foreground mt-2">
+          God has uniquely designed you with gifts and abilities.
+        </p>
+      </div>
+
+      <TagInput
+        value={gifts}
+        onChange={setGifts}
+        placeholder="Add a gift..."
+        testId="input-gift"
+      />
+      <TagInput
+        value={skills}
+        onChange={setSkills}
+        placeholder="Add a skill..."
+        testId="input-skill"
+      />
+      <TagInput
+        value={interests}
+        onChange={setInterests}
+        placeholder="Add an interest..."
+        testId="input-interest"
+      />
+      <TagInput
+        value={passions}
+        onChange={setPassions}
+        placeholder="Add a passion..."
+        testId="input-passion"
+      />
+
+      <Textarea
+        className="min-h-[120px]"
+        value={strongestTalent}
+        placeholder="Describe your strongest talent..."
+        onChange={(e) => setStrongestTalent(e.target.value)}
+        data-testid="textarea-strongest-talent"
       />
     </div>
   );
 }
 
-interface StepProps {
-  data: any;
-  onUpdate: (data: any) => void;
-}
+//-----------------------------------------------------
+// PURPOSE STEP
+//-----------------------------------------------------
 
-function IdentityStep({ data, onUpdate }: StepProps) {
-  const [gifts, setGifts] = useState<string[]>(data?.gifts || []);
-  const [skills, setSkills] = useState<string[]>(data?.skills || []);
-  const [interests, setInterests] = useState<string[]>(data?.interests || []);
-  const [passions, setPassions] = useState<string[]>(data?.passions || []);
-  const [strongestTalent, setStrongestTalent] = useState(
-    data?.strongestTalent || ""
+function PurposeStep({
+  data,
+  onUpdate,
+}: {
+  data: Partial<PurposeProfile>;
+  onUpdate: (updates: Partial<PurposeProfile>) => void;
+}) {
+  const [whoToBlessing, setWhoToBlessing] = useState<string[]>(
+    data.whoToBlessing ?? []
   );
-
-  useEffect(() => {
-    onUpdate({ gifts, skills, interests, passions, strongestTalent });
-  }, [gifts, skills, interests, passions, strongestTalent]);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Gifts</Label>
-        <TagInput value={gifts} onChange={setGifts} placeholder="Add a gift and press Enter..." />
-      </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Skills</Label>
-        <TagInput value={skills} onChange={setSkills} placeholder="Add a skill and press Enter..." />
-      </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Interests</Label>
-        <TagInput value={interests} onChange={setInterests} placeholder="Add an interest and press Enter..." />
-      </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Passions</Label>
-        <TagInput value={passions} onChange={setPassions} placeholder="Add a passion and press Enter..." />
-      </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Strongest Talent</Label>
-        <Textarea
-          className="min-h-[120px]"
-          value={strongestTalent}
-          placeholder="Describe your strongest talent..."
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setStrongestTalent(e.target.value)}
-          data-testid="textarea-strongest-talent"
-        />
-      </div>
-    </div>
+  const [generosityTargets, setGenerosityTargets] = useState<
+    Record<string, number>
+  >(
+    (data.generosityTargets as Record<string, number>) ?? {
+      lovedOnes: 25,
+      strangers: 25,
+      community: 25,
+      kingdom: 25,
+    }
   );
-}
-
-function PurposeStep({ data, onUpdate }: StepProps) {
-  const [who, setWho] = useState<string[]>(data?.whoToBlessing || []);
   const [purposeStatement, setPurposeStatement] = useState(
-    data?.purposeStatement || ""
+    data.purposeStatement ?? ""
   );
 
   useEffect(() => {
-    onUpdate({ whoToBlessing: who, purposeStatement });
-  }, [who, purposeStatement]);
+    onUpdate({ whoToBlessing, generosityTargets, purposeStatement });
+  }, [whoToBlessing, generosityTargets, purposeStatement, onUpdate]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Who You Feel Called to Bless</Label>
-        <TagInput
-          value={who}
-          onChange={setWho}
-          placeholder="Add who you feel called to bless and press Enter..."
-        />
+      <div className="text-center mb-8">
+        <Heart className="h-12 w-12 mx-auto text-primary mb-4" />
+        <h2 className="text-2xl font-semibold">Define Your Purpose</h2>
       </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Purpose Statement</Label>
-        <Textarea
-          className="min-h-[120px]"
-          value={purposeStatement}
-          placeholder="I exist to..."
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPurposeStatement(e.target.value)}
-          data-testid="textarea-purpose"
-        />
-      </div>
+
+      <TagInput
+        value={whoToBlessing}
+        onChange={setWhoToBlessing}
+        placeholder="Add a group to bless..."
+        testId="input-who"
+      />
+
+      {Object.keys(generosityTargets).map((key) => (
+        <div key={key}>
+          <Label className="text-sm capitalize">{key}</Label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={generosityTargets[key]}
+            onChange={(e) =>
+              setGenerosityTargets({
+                ...generosityTargets,
+                [key]: parseInt(e.target.value),
+              })
+            }
+          />
+        </div>
+      ))}
+
+      <Textarea
+        className="min-h-[120px]"
+        value={purposeStatement}
+        placeholder="I exist to..."
+        onChange={(e) => setPurposeStatement(e.target.value)}
+        data-testid="textarea-purpose"
+      />
     </div>
   );
 }
 
-interface PillarsStepProps {
-  data: SeasonPillar[];
-  onUpdate: (id: string, updates: Partial<SeasonPillar>) => void;
-  onCreatePillar: (name: string) => void;
-  onDeletePillar: (id: string) => void;
-}
+//-----------------------------------------------------
+// PILLARS STEP
+//-----------------------------------------------------
 
-function PillarsStep({ data, onUpdate, onCreatePillar, onDeletePillar }: PillarsStepProps) {
+function PillarsStep({
+  data,
+  onChange,
+}: {
+  data: SeasonPillar[];
+  onChange: (pillars: SeasonPillar[]) => void;
+}) {
   const [newPillarName, setNewPillarName] = useState("");
 
-  const handleCreate = () => {
-    if (newPillarName.trim()) {
-      onCreatePillar(newPillarName.trim());
-      setNewPillarName("");
-    }
+  const addPillar = () => {
+    if (!newPillarName.trim()) return;
+    const pillar: SeasonPillar = {
+      id: crypto.randomUUID(),
+      name: newPillarName.trim(),
+      description: "",
+      weeklyHoursBudget: 0,
+    } as SeasonPillar;
+    onChange([...data, pillar]);
+    setNewPillarName("");
+  };
+
+  const updatePillar = (id: string, updates: Partial<SeasonPillar>) => {
+    onChange(
+      data.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+  };
+
+  const deletePillar = (id: string) => {
+    onChange(data.filter((p) => p.id !== id));
   };
 
   return (
-    <div className="space-y-4">
-      <Label className="text-sm text-muted-foreground mb-2 block">
-        Your Season Pillars - Focus areas for this season of life
-      </Label>
-      
-      {data.map((pillar) => (
-        <Card key={pillar.id}>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex justify-between items-center gap-2">
-              <span className="font-medium">{pillar.name}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => onDeletePillar(pillar.id)}
-                data-testid={`button-delete-pillar-${pillar.id}`}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <Target className="h-12 w-12 mx-auto text-primary mb-4" />
+        <h2 className="text-2xl font-semibold">Season Pillars</h2>
+      </div>
 
-            <Textarea
-              value={pillar.description || ""}
-              placeholder="Describe this pillar..."
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                onUpdate(pillar.id, { description: e.target.value })
-              }
-              data-testid={`textarea-pillar-description-${pillar.id}`}
-            />
+      <div className="space-y-4">
+        <Label className="text-base font-medium">Your Pillars</Label>
 
-            <Input
-              type="number"
-              value={pillar.weeklyHoursBudget ?? ""}
-              placeholder="Hours/week budget"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onUpdate(pillar.id, {
-                  weeklyHoursBudget: parseInt(e.target.value) || undefined,
-                })
-              }
-              data-testid={`input-pillar-hours-${pillar.id}`}
-            />
-          </CardContent>
-        </Card>
-      ))}
+        {data.map((pillar) => (
+          <Card key={pillar.id}>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span>{pillar.name}</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => deletePillar(pillar.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-      <div className="flex gap-2">
-        <Input
-          value={newPillarName}
-          placeholder="New pillar name..."
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPillarName(e.target.value)}
-          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleCreate()}
-          data-testid="input-new-pillar"
-        />
-        <Button onClick={handleCreate} data-testid="button-add-pillar">
-          <Plus className="h-4 w-4" />
-        </Button>
+              <Textarea
+                value={pillar.description || ""}
+                onChange={(e) =>
+                  updatePillar(pillar.id, { description: e.target.value })
+                }
+              />
+
+              <Input
+                type="number"
+                placeholder="Hours per week"
+                value={pillar.weeklyHoursBudget ?? ""}
+                onChange={(e) =>
+                  updatePillar(pillar.id, {
+                    weeklyHoursBudget: parseInt(e.target.value) || 0,
+                  })
+                }
+              />
+            </CardContent>
+          </Card>
+        ))}
+
+        <div className="flex gap-2">
+          <Input
+            value={newPillarName}
+            placeholder="New Pillar"
+            onChange={(e) => setNewPillarName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addPillar()}
+          />
+          <Button onClick={addPillar}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-function VisionStep({ data, onUpdate }: StepProps) {
-  const [yearVision, setYearVision] = useState(data?.yearVision || "");
-  const [quarterly, setQuarterly] = useState(
-    data?.quarterlyOutcomes || { Q1: "", Q2: "", Q3: "", Q4: "" }
+//-----------------------------------------------------
+// VISION STEP
+//-----------------------------------------------------
+
+function VisionStep({
+  data,
+  onUpdate,
+}: {
+  data: Partial<VisionMap>;
+  onUpdate: (updates: Partial<VisionMap>) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const [yearVision, setYearVision] = useState(data.yearVision ?? "");
+  const [quarterlyOutcomes, setQuarterlyOutcomes] = useState<
+    Record<string, string>
+  >(
+    (data.quarterlyOutcomes as Record<string, string>) ?? {
+      Q1: "",
+      Q2: "",
+      Q3: "",
+      Q4: "",
+    }
   );
 
   useEffect(() => {
-    onUpdate({ yearVision, quarterlyOutcomes: quarterly, year: new Date().getFullYear() });
-  }, [yearVision, quarterly]);
+    onUpdate({
+      year: currentYear,
+      yearVision,
+      quarterlyOutcomes,
+    });
+  }, [yearVision, quarterlyOutcomes, onUpdate, currentYear]);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Your Vision for This Year</Label>
-        <Textarea
-          value={yearVision}
-          placeholder="This year I will..."
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setYearVision(e.target.value)}
-          data-testid="textarea-year-vision"
-        />
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <Calendar className="h-12 w-12 mx-auto text-primary mb-4" />
+        <h2 className="text-2xl font-semibold">Year Vision</h2>
       </div>
 
-      <Label className="text-sm text-muted-foreground block">Quarterly Outcomes</Label>
-      <div className="grid grid-cols-2 gap-4">
-        {(["Q1", "Q2", "Q3", "Q4"] as const).map((q) => (
+      <Textarea
+        className="min-h-[120px]"
+        value={yearVision}
+        onChange={(e) => setYearVision(e.target.value)}
+        placeholder="This year I will..."
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.keys(quarterlyOutcomes).map((q) => (
           <Textarea
             key={q}
-            value={quarterly[q] || ""}
-            placeholder={`${q} outcomes`}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-              setQuarterly({ ...quarterly, [q]: e.target.value })
+            className="min-h-[80px]"
+            placeholder={`${q} outcomes...`}
+            value={quarterlyOutcomes[q]}
+            onChange={(e) =>
+              setQuarterlyOutcomes({
+                ...quarterlyOutcomes,
+                [q]: e.target.value,
+              })
             }
-            data-testid={`textarea-${q.toLowerCase()}`}
           />
         ))}
       </div>
@@ -289,196 +445,180 @@ function VisionStep({ data, onUpdate }: StepProps) {
   );
 }
 
-function CapacityStep({ data, onUpdate }: StepProps) {
-  const [weekly, setWeekly] = useState(data?.weeklyAvailableHours || 40);
-  const [season, setSeason] = useState(data?.seasonOfLife || "");
-  const [bandwidth, setBandwidth] = useState(data?.emotionalBandwidth || "medium");
+//-----------------------------------------------------
+// CAPACITY STEP
+//-----------------------------------------------------
+
+function CapacityStep({
+  data,
+  onUpdate,
+}: {
+  data: Partial<CapacityProfile>;
+  onUpdate: (updates: Partial<CapacityProfile>) => void;
+}) {
+  const [weeklyAvailableHours, setWeeklyAvailableHours] = useState(
+    data.weeklyAvailableHours ?? 40
+  );
+
+  const [emotionalBandwidth, setEmotionalBandwidth] = useState(
+    data.emotionalBandwidth ?? "medium"
+  );
+
+  const [seasonOfLife, setSeasonOfLife] = useState(
+    data.seasonOfLife ?? ""
+  );
 
   useEffect(() => {
     onUpdate({
-      weeklyAvailableHours: weekly,
-      seasonOfLife: season,
-      emotionalBandwidth: bandwidth,
+      weeklyAvailableHours,
+      emotionalBandwidth,
+      seasonOfLife,
     });
-  }, [weekly, season, bandwidth]);
+  }, [weeklyAvailableHours, emotionalBandwidth, seasonOfLife, onUpdate]);
 
   return (
     <div className="space-y-6">
+      <div className="text-center mb-8">
+        <Battery className="h-12 w-12 mx-auto text-primary mb-4" />
+        <h2 className="text-2xl font-semibold">Your Capacity</h2>
+      </div>
+
       <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">
-          Weekly Available Hours: {weekly}
-        </Label>
-        <Input
+        <Label>Weekly Available Hours</Label>
+        <input
           type="range"
           min="5"
           max="60"
-          value={weekly}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeekly(parseInt(e.target.value))}
-          data-testid="input-weekly-hours"
+          value={weeklyAvailableHours}
+          onChange={(e) =>
+            setWeeklyAvailableHours(parseInt(e.target.value))
+          }
         />
+        <p className="text-sm mt-1">{weeklyAvailableHours} hours/week</p>
       </div>
+
       <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Season of Life</Label>
-        <Textarea
-          value={season}
-          placeholder="Describe your current season of life..."
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSeason(e.target.value)}
-          data-testid="textarea-season"
-        />
-      </div>
-      <div>
-        <Label className="text-sm text-muted-foreground mb-2 block">Emotional Bandwidth</Label>
+        <Label>Emotional Bandwidth</Label>
         <div className="flex gap-2">
           {["low", "medium", "high"].map((level) => (
             <Button
               key={level}
-              variant={bandwidth === level ? "default" : "outline"}
-              onClick={() => setBandwidth(level)}
-              data-testid={`button-bandwidth-${level}`}
+              variant={
+                emotionalBandwidth === level ? "default" : "outline"
+              }
+              onClick={() => setEmotionalBandwidth(level)}
             >
-              {level.charAt(0).toUpperCase() + level.slice(1)}
+              {level}
             </Button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <Label>Season of Life</Label>
+        <Textarea
+          className="min-h-[100px]"
+          value={seasonOfLife}
+          onChange={(e) => setSeasonOfLife(e.target.value)}
+        />
       </div>
     </div>
   );
 }
 
+//-----------------------------------------------------
+// MAIN ONBOARDING COMPONENT
+//-----------------------------------------------------
+
 export default function Onboarding() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [, navigate] = useLocation();
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [identity, setIdentity] = useState<Partial<IdentityProfile>>({});
+  const [purpose, setPurpose] = useState<Partial<PurposeProfile>>({});
+  const [pillars, setPillars] = useState<SeasonPillar[]>([]);
+  const [vision, setVision] = useState<Partial<VisionMap>>({});
+  const [capacity, setCapacity] = useState<Partial<CapacityProfile>>({});
 
-  const [pendingData, setPendingData] = useState<{
-    identity: Partial<IdentityProfile>;
-    purpose: Partial<PurposeProfile>;
-    vision: Partial<VisionMap>;
-    capacity: Partial<CapacityProfile>;
-  }>({
-    identity: {},
-    purpose: {},
-    vision: {},
-    capacity: {},
-  });
-
-  interface OnboardingAllResponse {
-    progress: OnboardingProgress | null;
-    identity: IdentityProfile | null;
-    purpose: PurposeProfile | null;
-    seasonPillars: SeasonPillar[];
-    vision: VisionMap | null;
-    capacity: CapacityProfile | null;
-  }
-
-  const { data: serverData, isLoading: loadingServer } = useQuery<OnboardingAllResponse>({
-    queryKey: ["/api/onboarding/all"],
+  const { data, isLoading } = useQuery<FirestoreOnboardingDocument>({
+    queryKey: ["onboarding-all", user?.uid],
     enabled: !!user,
-  });
-
-  const { data: progressData, isLoading: loadingProgress } = useQuery<OnboardingProgress | null>({
-    queryKey: ["/api/onboarding/progress"],
-    enabled: !!user,
-  });
-
-  useEffect(() => {
-    if (progressData?.currentStep) {
-      setCurrentStep(progressData.currentStep);
-    }
-  }, [progressData?.currentStep]);
-
-  const updateProgress = useMutation({
-    mutationFn: async (updates: Partial<OnboardingProgress>) =>
-      apiRequest("PATCH", "/api/onboarding/progress", updates),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] }),
-  });
-
-  const completeOnboarding = useMutation({
-    mutationFn: async () =>
-      apiRequest("POST", "/api/onboarding/complete", {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
-      navigate("/");
+    queryFn: async () => {
+      if (!user) throw new Error("No user");
+      return await getOnboardingAll(user.uid);
     },
   });
 
-  const handleSkip = async () => {
-    try {
-      await apiRequest("POST", "/api/onboarding/complete", {});
-      queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
-      navigate("/");
-    } catch (err) {
-      toast({
-        title: "Skip failed",
-        description: "Could not skip onboarding. Please try again.",
-        variant: "destructive",
-      });
+  // hydrate local state when data loads
+  useEffect(() => {
+    if (!data) return;
+    setIdentity(data.identity ?? {});
+    setPurpose(data.purpose ?? {});
+    setPillars(data.seasonPillars ?? []);
+    setVision(data.vision ?? {});
+    setCapacity(data.capacity ?? {});
+    if (data.progress?.currentStep) {
+      setCurrentStep(data.progress.currentStep);
     }
-  };
+  }, [data]);
 
-  const saveStepData = async () => {
-    try {
-      console.log("[Onboarding] saveStepData called for step:", currentStep);
-      console.log("[Onboarding] pendingData:", JSON.stringify(pendingData, null, 2));
-      
-      if (currentStep === 1) {
-        console.log("[Onboarding] Saving identity:", pendingData.identity);
-        const res = await apiRequest("PATCH", "/api/profile/identity", pendingData.identity);
-        console.log("[Onboarding] Identity save response status:", res.status);
-      }
-      if (currentStep === 2) {
-        console.log("[Onboarding] Saving purpose:", pendingData.purpose);
-        const res = await apiRequest("PATCH", "/api/profile/purpose", pendingData.purpose);
-        console.log("[Onboarding] Purpose save response status:", res.status);
-      }
-      if (currentStep === 3) {
-        console.log("[Onboarding] Step 3 (pillars) - saved individually via handlers");
-      }
-      if (currentStep === 4) {
-        console.log("[Onboarding] Saving vision:", pendingData.vision);
-        const res = await apiRequest("PATCH", "/api/profile/vision", {
-          ...pendingData.vision,
-          year: new Date().getFullYear(),
-        });
-        console.log("[Onboarding] Vision save response status:", res.status);
-      }
-      if (currentStep === 5) {
-        console.log("[Onboarding] Saving capacity:", pendingData.capacity);
-        const res = await apiRequest("PATCH", "/api/profile/capacity", pendingData.capacity);
-        console.log("[Onboarding] Capacity save response status:", res.status);
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/all"] });
-    } catch (error) {
-      console.error("[Onboarding] Error saving step data:", error);
-      throw error;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>You must be logged in to complete onboarding.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Skeleton className="h-10 w-10 mx-auto" />
+      </div>
+    );
+  }
+
+  const progressPercent = (currentStep / 5) * 100;
+
+  const saveCurrentStep = async () => {
+    const uid = user.uid;
+    switch (currentStep) {
+      case 1:
+        await saveIdentity(uid, identity);
+        await updateOnboardingProgress(uid, { identityComplete: true });
+        break;
+      case 2:
+        await savePurpose(uid, purpose);
+        await updateOnboardingProgress(uid, { purposeComplete: true });
+        break;
+      case 3:
+        await saveSeasonPillars(uid, pillars);
+        await updateOnboardingProgress(uid, { pillarsComplete: true });
+        break;
+      case 4:
+        await saveVision(uid, vision);
+        await updateOnboardingProgress(uid, { visionComplete: true });
+        break;
+      case 5:
+        await saveCapacity(uid, capacity);
+        await updateOnboardingProgress(uid, { capacityComplete: true });
+        break;
     }
   };
 
   const handleNext = async () => {
     try {
-      await saveStepData();
-
-      const completionKeys = [
-        "identityComplete",
-        "purposeComplete",
-        "pillarsComplete",
-        "visionComplete",
-        "capacityComplete",
-      ] as const;
-
-      await updateProgress.mutateAsync({
-        currentStep: currentStep + 1,
-        [completionKeys[currentStep - 1]]: true,
-      });
-
-      setCurrentStep((c) => c + 1);
-    } catch (err) {
+      await saveCurrentStep();
+      const nextStep = Math.min(currentStep + 1, 5);
+      await updateOnboardingProgress(user.uid, { currentStep: nextStep });
+      setCurrentStep(nextStep);
+    } catch (error) {
+      console.error(error);
       toast({
-        title: "Save failed",
-        description: "Something went wrong saving this step.",
+        title: "Error",
+        description: "Could not save. Try again.",
         variant: "destructive",
       });
     }
@@ -486,153 +626,102 @@ export default function Onboarding() {
 
   const handleComplete = async () => {
     try {
-      await saveStepData();
-      await completeOnboarding.mutateAsync();
+      await saveCurrentStep();
+      await updateOnboardingProgress(user.uid, {
+        onboardingComplete: true,
+        capacityComplete: true,
+      });
+      await markOnboardingComplete(user.uid);
 
       toast({
-        title: "Welcome!",
-        description: "Your alignment journey begins.",
+        title: "Welcome to Aligned!",
+        description: "Your profile is set up. Let's start your journey.",
       });
-    } catch (err) {
+      setLocation("/");
+    } catch (error) {
+      console.error(error);
       toast({
-        title: "Completion failed",
-        description: "Try again.",
+        title: "Error",
+        description: "Failed to complete setup. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handlePillarUpdate = async (id: string, updates: Partial<SeasonPillar>) => {
+  const handleSkip = async () => {
     try {
-      await apiRequest("PATCH", `/api/profile/season-pillars/${id}`, updates);
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/all"] });
-    } catch (err) {
-      console.error("Error updating pillar:", err);
+      await updateOnboardingProgress(user.uid, {
+        onboardingComplete: true,
+      });
+      await markOnboardingComplete(user.uid);
+      setLocation("/");
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to skip onboarding. Please try again.",
+        variant: "destructive",
+      });
     }
-  };
-
-  const handleCreatePillar = async (name: string) => {
-    try {
-      await apiRequest("POST", "/api/profile/season-pillars", { name });
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/all"] });
-    } catch (err) {
-      console.error("Error creating pillar:", err);
-    }
-  };
-
-  const handleDeletePillar = async (id: string) => {
-    try {
-      await apiRequest("DELETE", `/api/profile/season-pillars/${id}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/all"] });
-    } catch (err) {
-      console.error("Error deleting pillar:", err);
-    }
-  };
-
-  if (loadingServer || loadingProgress) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Skeleton className="h-10 w-10" />
-      </div>
-    );
-  }
-
-  const step = currentStep;
-  const progressPercent = (step / 5) * 100;
-  const all: OnboardingAllResponse = serverData || {
-    progress: null,
-    identity: null,
-    purpose: null,
-    seasonPillars: [],
-    vision: null,
-    capacity: null,
   };
 
   return (
-    <div className="min-h-screen py-10 bg-background">
+    <div className="min-h-screen bg-background py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-6">
-          <h1 className="text-lg font-semibold" data-testid="text-onboarding-title">
-            {stepInfo[step - 1]?.title || "Getting Started"}
-          </h1>
-          <Progress value={progressPercent} className="h-2 mt-2" />
-          <p className="text-sm text-muted-foreground mt-2">Step {step} of 5</p>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-lg font-semibold">Getting Started</h1>
+            <Button variant="ghost" size="sm" onClick={handleSkip}>
+              Skip for now
+            </Button>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
         </div>
 
+        {/* Card */}
         <Card className="shadow-lg">
-          <CardContent className="p-6 space-y-8">
-            {step === 1 && (
-              <IdentityStep
-                data={all.identity}
-                onUpdate={(u) => setPendingData((p) => ({ ...p, identity: u }))}
-              />
+          <CardContent className="p-6 md:p-8">
+            {currentStep === 1 && (
+              <IdentityStep data={identity} onUpdate={setIdentity} />
             )}
 
-            {step === 2 && (
-              <PurposeStep
-                data={all.purpose}
-                onUpdate={(u) => setPendingData((p) => ({ ...p, purpose: u }))}
-              />
+            {currentStep === 2 && (
+              <PurposeStep data={purpose} onUpdate={setPurpose} />
             )}
 
-            {step === 3 && (
-              <PillarsStep
-                data={all.seasonPillars || []}
-                onUpdate={handlePillarUpdate}
-                onCreatePillar={handleCreatePillar}
-                onDeletePillar={handleDeletePillar}
-              />
+            {currentStep === 3 && (
+              <PillarsStep data={pillars} onChange={setPillars} />
             )}
 
-            {step === 4 && (
-              <VisionStep
-                data={all.vision}
-                onUpdate={(u) => setPendingData((p) => ({ ...p, vision: u }))}
-              />
+            {currentStep === 4 && (
+              <VisionStep data={vision} onUpdate={setVision} />
             )}
 
-            {step === 5 && (
-              <CapacityStep
-                data={all.capacity}
-                onUpdate={(u) => setPendingData((p) => ({ ...p, capacity: u }))}
-              />
+            {currentStep === 5 && (
+              <CapacityStep data={capacity} onUpdate={setCapacity} />
             )}
 
-            <div className="flex justify-between pt-8 border-t gap-4">
+            {/* Navigation buttons */}
+            <div className="flex justify-between mt-8 pt-6 border-t">
               <Button
                 variant="outline"
-                disabled={step === 1}
-                onClick={() => setCurrentStep((s) => s - 1)}
-                data-testid="button-back"
+                disabled={currentStep === 1}
+                onClick={() => setCurrentStep((prev) => prev - 1)}
               >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Back
+                <ChevronLeft className="h-4 w-4 mr-1" /> Back
               </Button>
 
-              {step < 5 ? (
-                <Button onClick={handleNext} data-testid="button-next">
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
+              {currentStep < 5 ? (
+                <Button onClick={handleNext}>
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button onClick={handleComplete} data-testid="button-finish">
-                  Finish
-                </Button>
+                <Button onClick={handleComplete}>Complete Setup</Button>
               )}
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="text-sm text-muted-foreground underline hover:text-foreground"
-            data-testid="button-skip-onboarding"
-          >
-            Skip for now
-          </button>
-        </div>
       </div>
     </div>
   );
