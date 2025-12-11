@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirestore, doc, setDoc } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
 initAdmin();
@@ -16,11 +16,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    await setDoc(doc(db, "onboarding", uid), updates, { merge: true });
+    await db.collection("onboarding").doc(uid).set(updates, { merge: true });
     return res.json({ success: true });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
 }
-
-//api/onboarding/update.ts

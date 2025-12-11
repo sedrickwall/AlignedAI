@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirestore, doc, updateDoc, serverTimestamp } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
 initAdmin();
@@ -14,9 +14,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!uid) return res.status(400).json({ error: "Missing uid" });
 
   try {
-    await updateDoc(doc(db, "onboarding", uid), {
+    await db.collection("onboarding").doc(uid).update({
       onboardingComplete: true,
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     return res.json({ success: true });

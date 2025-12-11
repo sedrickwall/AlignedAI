@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirestore, doc, getDoc } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
 initAdmin();
@@ -11,10 +11,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!uid) return res.status(400).json({ error: "Missing uid" });
 
   try {
-    const ref = doc(db, "onboarding", uid as string);
-    const snap = await getDoc(ref);
+    const snap = await db.collection("onboarding").doc(uid as string).get();
 
-    if (!snap.exists()) {
+    if (!snap.exists) {
       return res.json({
         onboardingComplete: false,
         currentStep: 1,

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirestore, doc, getDoc } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
 initAdmin();
@@ -15,8 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results: Record<string, any> = {};
 
     for (const col of collections) {
-      const snap = await getDoc(doc(db, col, uid as string));
-      results[col] = snap.exists() ? snap.data() : col === "seasonPillars" ? [] : null;
+      const snap = await db.collection(col).doc(uid as string).get();
+      results[col] = snap.exists ? snap.data() : col === "seasonPillars" ? [] : null;
     }
 
     return res.json(results);
