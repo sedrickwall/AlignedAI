@@ -364,12 +364,21 @@ export default function Onboarding() {
     capacity: {},
   });
 
-  const { data: serverData, isLoading: loadingServer } = useQuery({
+  interface OnboardingAllResponse {
+    progress: { currentStep: number; onboardingComplete: boolean };
+    identity: IdentityProfile | null;
+    purpose: PurposeProfile | null;
+    seasonPillars: SeasonPillar[];
+    vision: VisionMap | null;
+    capacity: CapacityProfile | null;
+  }
+
+  const { data: serverData, isLoading: loadingServer } = useQuery<OnboardingAllResponse>({
     queryKey: ["/api/onboarding/all"],
     enabled: !!user,
   });
 
-  const { data: progressData, isLoading: loadingProgress } = useQuery({
+  const { data: progressData, isLoading: loadingProgress } = useQuery<{ currentStep: number; onboardingComplete: boolean }>({
     queryKey: ["/api/onboarding/progress"],
     enabled: !!user,
   });
@@ -502,7 +511,14 @@ export default function Onboarding() {
 
   const step = currentStep;
   const progressPercent = (step / 5) * 100;
-  const all = serverData || {};
+  const all: OnboardingAllResponse = serverData || {
+    progress: { currentStep: 1, onboardingComplete: false },
+    identity: null,
+    purpose: null,
+    seasonPillars: [],
+    vision: null,
+    capacity: null,
+  };
 
   return (
     <div className="min-h-screen py-10 bg-background">

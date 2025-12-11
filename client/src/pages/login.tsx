@@ -1,4 +1,3 @@
-// client/src/pages/login.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
@@ -18,9 +17,6 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // ---------------------------
-  // EMAIL PASSWORD LOGIN
-  // ---------------------------
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -30,7 +26,7 @@ export default function Login() {
 
       toast({
         title: "Welcome back",
-        description: "Let’s get you aligned for today.",
+        description: "Let's get you aligned for today.",
       });
 
       navigate("/");
@@ -46,9 +42,6 @@ export default function Login() {
     }
   };
 
-  // ---------------------------
-  // GOOGLE LOGIN
-  // ---------------------------
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     try {
@@ -77,7 +70,7 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-lg">
         <CardContent className="p-6 space-y-6">
           <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-login-title">
               Sign in to Aligned
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -85,7 +78,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* EMAIL LOGIN */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -96,6 +88,7 @@ export default function Login() {
                 autoComplete="email"
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                data-testid="input-email"
               />
             </div>
 
@@ -108,6 +101,7 @@ export default function Login() {
                 autoComplete="current-password"
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                data-testid="input-password"
               />
             </div>
 
@@ -115,24 +109,24 @@ export default function Login() {
               type="submit"
               className="w-full mt-2"
               disabled={isSubmitting}
+              data-testid="button-login"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
-          {/* OR DIVIDER */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground">OR</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          {/* GOOGLE SIGN-IN BUTTON */}
           <Button
             variant="outline"
             className="w-full flex items-center justify-center gap-2 py-2"
             onClick={handleGoogleLogin}
             disabled={googleLoading}
+            data-testid="button-google-login"
           >
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -143,11 +137,12 @@ export default function Login() {
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
-            Don&apos;t have an account yet?{" "}
+            Don't have an account yet?{" "}
             <button
               type="button"
               className="underline"
               onClick={() => navigate("/signup")}
+              data-testid="link-signup"
             >
               Create one
             </button>

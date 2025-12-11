@@ -1,4 +1,3 @@
-// client/src/pages/signup.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import {
@@ -6,8 +5,7 @@ import {
   updateProfile,
   signInWithPopup
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,47 +21,22 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ---------------------------------------------
-  // EMAIL + PASSWORD SIGN UP
-  // ---------------------------------------------
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // 1) Create Firebase user
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      // 2) Update display name
       if (fullName) {
         await updateProfile(cred.user, { displayName: fullName });
       }
 
-      // 3) Save user profile
-      await setDoc(doc(db, "users", cred.user.uid), {
-        fullName,
-        email,
-        createdAt: serverTimestamp(),
-      });
-
-      // 4) Initialize onboarding document 🔥🔥🔥 (THIS IS STEP 3)
-      await setDoc(
-        doc(db, "onboarding", cred.user.uid),
-        {
-          userId: cred.user.uid,
-          currentStep: 1,
-          onboardingComplete: false,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
       toast({
         title: "Account created",
-        description: "Welcome! Let’s set up your Aligned profile.",
+        description: "Welcome! Let's set up your Aligned profile.",
       });
 
-      // 5) Redirect to onboarding
       navigate("/onboarding");
     } catch (err: any) {
       console.error(err);
@@ -77,29 +50,14 @@ export default function Signup() {
     }
   };
 
-  // ---------------------------------------------
-  // GOOGLE SIGN UP
-  // ---------------------------------------------
   const handleGoogleSignup = async () => {
     setIsSubmitting(true);
     try {
-      const cred = await signInWithPopup(auth, googleProvider);
-
-      // Ensure onboarding doc exists
-      await setDoc(
-        doc(db, "onboarding", cred.user.uid),
-        {
-          userId: cred.user.uid,
-          currentStep: 1,
-          onboardingComplete: false,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await signInWithPopup(auth, googleProvider);
 
       toast({
         title: "Welcome!",
-        description: "Let’s personalize your daily rhythm.",
+        description: "Let's personalize your daily rhythm.",
       });
 
       navigate("/onboarding");
@@ -121,7 +79,7 @@ export default function Signup() {
         <CardContent className="p-6 space-y-6">
 
           <div className="space-y-1 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-signup-title">
               Create your Aligned account
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -137,6 +95,7 @@ export default function Signup() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
+                data-testid="input-fullname"
               />
             </div>
 
@@ -149,6 +108,7 @@ export default function Signup() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                data-testid="input-email"
               />
             </div>
 
@@ -162,20 +122,27 @@ export default function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                data-testid="input-password"
               />
             </div>
 
-            <Button className="w-full mt-2" disabled={isSubmitting} type="submit">
+            <Button className="w-full mt-2" disabled={isSubmitting} type="submit" data-testid="button-signup">
               {isSubmitting ? "Creating..." : "Get started"}
             </Button>
           </form>
 
-          {/* GOOGLE BUTTON */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
           <Button
             variant="outline"
             className="w-full flex items-center justify-center gap-2"
             disabled={isSubmitting}
             onClick={handleGoogleSignup}
+            data-testid="button-google-signup"
           >
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -188,8 +155,10 @@ export default function Signup() {
           <p className="text-xs text-center text-muted-foreground">
             Already have an account?{" "}
             <button
+              type="button"
               className="underline"
               onClick={() => navigate("/login")}
+              data-testid="link-login"
             >
               Log in
             </button>
