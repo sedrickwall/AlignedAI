@@ -24,21 +24,17 @@ export default function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function createOnboardingDoc(uid: string) {
-    await setDoc(
-      doc(db, "onboarding", uid),
-      {
-        userId: uid,
-        currentStep: 1,
-        onboardingComplete: false,
-        identityComplete: false,
-        purposeComplete: false,
-        pillarsComplete: false,
-        visionComplete: false,
-        capacityComplete: false,
-        createdAt: serverTimestamp()
-      },
-      { merge: true }
-    );
+    await setDoc(doc(db, "onboarding", uid), {
+      userId: uid,
+      currentStep: 1,
+      onboardingComplete: false,
+      identityComplete: false,
+      purposeComplete: false,
+      pillarsComplete: false,
+      visionComplete: false,
+      capacityComplete: false,
+      createdAt: serverTimestamp()
+    }, { merge: true });
   }
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
