@@ -6,72 +6,71 @@ import type {
   TaskEvaluationResponse
 } from "../shared/taskEval.js";
 
-
-const HF_API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-base";
-const HF_TOKEN = process.env.HF_TOKEN;
-
-if (!HF_TOKEN) {
-  console.warn("[TaskAnalyzer] Missing HF_TOKEN in environment.");
-}
-
 /**
- * Call HuggingFace to semantically analyze the task.
+ * Keyword-based task classification (works offline, no API needed)
  */
-export async function analyzeTaskWithHF(task: string): Promise<TaskAnalysis> {
-  const prompt = `
-You are an assistant that classifies tasks for Christian productivity.
-Return JSON ONLY. No explanation, no text, just JSON.
-
-Task: "${task}"
-
-Respond strictly in this JSON shape:
-{
-  "type": "errand | admin | relationship | money | health | spiritual | distraction | maintenance | opportunity | other",
-  "urgency": "low | medium | high",
-  "emotional_weight": 1-10,
-  "strategic_value": 1-10,
-  "short_summary": "one sentence"
-}
-  `.trim();
-
-  const res = await fetch(HF_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${HF_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ inputs: prompt }),
-  });
-
-  if (!res.ok) {
-    console.error("[HF] Non-200", await res.text());
-    throw new Error("Task analysis model failed");
-  }
-
-  const json = await res.json();
-
-  // HF often returns [{ generated_text: "..." }]
-  const raw = Array.isArray(json) ? json[0]?.generated_text ?? "" : JSON.stringify(json);
-
-  // Try to extract JSON blob safely
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) {
-    console.warn("[HF] Could not parse JSON, raw:", raw);
-    throw new Error("Model response not parseable as JSON");
-  }
-
-  const parsed = JSON.parse(match[0]);
-
-  // Normalize to our type
-  const taskAnalysis: TaskAnalysis = {
-    type: parsed.type ?? "other",
-    urgency: parsed.urgency ?? "low",
-    emotional_weight: clampNumber(parsed.emotional_weight, 1, 10, 3),
-    strategic_value: clampNumber(parsed.strategic_value, 1, 10, 5),
-    short_summary: parsed.short_summary ?? task,
+function classifyTaskLocally(task: string): TaskAnalysis {
+  const lowerTask = task.toLowerCase();
+  
+  // Task type classification based on keywords
+  const typePatterns: Record<string, string[]> = {
+    spiritual: ["pray", "bible", "church", "worship", "devotion", "scripture", "faith", "god", "jesus", "meditation", "fasting", "sermon"],
+    relationship: ["call", "meet", "visit", "text", "email", "friend", "family", "mom", "dad", "wife", "husband", "kid", "child", "lunch", "dinner", "coffee", "date", "love"],
+    health: ["gym", "workout", "exercise", "run", "walk", "jog", "yoga", "sleep", "doctor", "dentist", "medicine", "eat", "diet", "water", "rest"],
+    money: ["pay", "bill", "bank", "budget", "invest", "save", "buy", "purchase", "sell", "invoice", "expense", "income", "tax", "finance", "salary"],
+    admin: ["file", "organize", "clean", "schedule", "plan", "review", "update", "fix", "maintain", "setup", "configure", "register", "renew", "cancel"],
+    errand: ["grocery", "store", "shop", "pick up", "drop off", "mail", "post", "return", "drive", "rental", "gas", "dry clean", "laundry"],
+    opportunity: ["launch", "start", "create", "build", "design", "write", "publish", "pitch", "present", "interview", "apply", "network", "grow"],
+    distraction: ["scroll", "browse", "social media", "netflix", "youtube", "game", "binge", "random", "news"],
+    maintenance: ["repair", "replace", "check", "inspect", "service", "backup", "clean up"],
   };
 
-  return taskAnalysis;
+  let detectedType: TaskAnalysis["type"] = "other";
+  for (const [type, keywords] of Object.entries(typePatterns)) {
+    if (keywords.some(k => lowerTask.includes(k))) {
+      detectedType = type as TaskAnalysis["type"];
+      break;
+    }
+  }
+
+  // Urgency detection
+  const urgentKeywords = ["urgent", "asap", "now", "today", "deadline", "emergency", "immediately", "critical"];
+  const lowUrgencyKeywords = ["someday", "whenever", "maybe", "eventually", "later"];
+  
+  let urgency: "low" | "medium" | "high" = "medium";
+  if (urgentKeywords.some(k => lowerTask.includes(k))) {
+    urgency = "high";
+  } else if (lowUrgencyKeywords.some(k => lowerTask.includes(k))) {
+    urgency = "low";
+  }
+
+  // Emotional weight - higher for relational, spiritual, health tasks
+  const highEmotionalTypes = ["relationship", "spiritual", "health"];
+  const emotional_weight = highEmotionalTypes.includes(detectedType) ? 7 : 
+    detectedType === "distraction" ? 8 : 4;
+
+  // Strategic value based on type
+  const strategicValues: Record<string, number> = {
+    spiritual: 9,
+    relationship: 8,
+    opportunity: 8,
+    health: 7,
+    money: 6,
+    admin: 5,
+    errand: 4,
+    maintenance: 4,
+    distraction: 2,
+    other: 5,
+  };
+  const strategic_value = strategicValues[detectedType] || 5;
+
+  return {
+    type: detectedType,
+    urgency,
+    emotional_weight,
+    strategic_value,
+    short_summary: task,
+  };
 }
 
 function clampNumber(
@@ -96,8 +95,9 @@ export function evaluateMissionImpact(
 
   const urgencyScore = urgency === "high" ? 7 : urgency === "medium" ? 4 : 2;
 
+  // Check if task aligns with Big Three
   const alignedWithBigThree =
-    mission.bigThree.some((goal) =>
+    mission.bigThree.length > 0 && mission.bigThree.some((goal) =>
       goal.toLowerCase().includes(short_summary.toLowerCase()) ||
       short_summary.toLowerCase().includes(goal.toLowerCase())
     );
@@ -126,16 +126,16 @@ export function evaluateMissionImpact(
   const scriptureRefs: string[] = [];
 
   if (severity === "red") {
-    scriptureRefs.push("Luke 10:38–42", "Ephesians 5:15–16");
+    scriptureRefs.push("Luke 10:38-42", "Ephesians 5:15-16");
   } else if (severity === "yellow") {
-    scriptureRefs.push("1 Corinthians 10:23", "Proverbs 4:25–27");
+    scriptureRefs.push("1 Corinthians 10:23", "Proverbs 4:25-27");
   } else {
     scriptureRefs.push("Colossians 3:23");
   }
 
   const reason =
     severity === "red"
-      ? "This task significantly pulls you away from today’s assignment and likely reduces Kingdom impact."
+      ? "This task significantly pulls you away from today's assignment and likely reduces Kingdom impact."
       : severity === "yellow"
       ? "This task could be good, but may compete with your main assignment. Use discernment."
       : "This task aligns well with your mission or has manageable cost.";
@@ -159,12 +159,13 @@ export function evaluateMissionImpact(
 
 /**
  * Full pipeline: Task text + mission → analysis + evaluation
+ * Uses local keyword-based analysis (no external API needed)
  */
 export async function evaluateTaskAgainstMission(
   task: string,
   mission: MissionContext
 ): Promise<TaskEvaluationResponse> {
-  const taskAnalysis = await analyzeTaskWithHF(task);
+  const taskAnalysis = classifyTaskLocally(task);
   const missionEvaluation = evaluateMissionImpact(taskAnalysis, mission);
   return { taskAnalysis, missionEvaluation };
 }
