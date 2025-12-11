@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { initAdmin } from "../utils/initAdmin";
+import { initAdmin } from "../../utils/initAdmin";
 
 initAdmin();
 const db = getFirestore();

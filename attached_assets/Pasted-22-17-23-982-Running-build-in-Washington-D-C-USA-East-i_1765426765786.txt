@@ -1,0 +1,51 @@
+22:17:23.982 Running build in Washington, D.C., USA (East) – iad1
+22:17:23.983 Build machine configuration: 2 cores, 8 GB
+22:17:24.124 Cloning github.com/sedrickwall/AlignedAI (Branch: main, Commit: e497d82)
+22:17:24.361 Cloning completed: 237.000ms
+22:17:25.499 Restored build cache from previous deployment (FJkWVoifmqN4FNJgyBYGE8Niyw6k)
+22:17:25.917 Running "vercel build"
+22:17:26.332 Vercel CLI 49.1.2
+22:17:27.037 Installing dependencies...
+22:17:28.645 
+22:17:28.646 up to date in 1s
+22:17:28.646 
+22:17:28.646 87 packages are looking for funding
+22:17:28.647   run `npm fund` for details
+22:17:28.789 
+22:17:28.789 > rest-express@1.0.0 vite-build
+22:17:28.790 > vite build
+22:17:28.790 
+22:17:29.098 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+22:17:29.165 transforming...
+22:17:30.359 
+22:17:30.359 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+22:17:34.156 [32m✓[39m 1755 modules transformed.
+22:17:34.527 rendering chunks...
+22:17:34.569 computing gzip size...
+22:17:34.588 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  2.51 kB[22m[1m[22m[2m │ gzip:   0.90 kB[22m
+22:17:34.589 [2m../dist/public/[22m[2massets/[22m[35mindex-C5WbFzVt.css  [39m[1m[2m 75.90 kB[22m[1m[22m[2m │ gzip:  12.42 kB[22m
+22:17:34.589 [2m../dist/public/[22m[2massets/[22m[36mindex-C0AUaIem.js   [39m[1m[33m654.26 kB[39m[22m[2m │ gzip: 180.99 kB[22m
+22:17:34.589 [32m✓ built in 5.46s[39m
+22:17:34.589 [33m
+22:17:34.589 (!) Some chunks are larger than 500 kB after minification. Consider:
+22:17:34.589 - Using dynamic import() to code-split the application
+22:17:34.590 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+22:17:34.590 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+22:17:34.921 Using TypeScript 5.6.3 (local user-provided)
+22:17:40.349 api/profile/season-pillars/index.ts(3,27): error TS2307: Cannot find module '../utils/initAdmin' or its corresponding type declarations.
+22:17:40.349 
+22:17:43.945 Using TypeScript 5.6.3 (local user-provided)
+22:17:48.511 Using TypeScript 5.6.3 (local user-provided)
+22:17:51.850 Using TypeScript 5.6.3 (local user-provided)
+22:17:55.192 Using TypeScript 5.6.3 (local user-provided)
+22:17:58.546 Using TypeScript 5.6.3 (local user-provided)
+22:18:02.247 Using TypeScript 5.6.3 (local user-provided)
+22:18:05.796 Using TypeScript 5.6.3 (local user-provided)
+22:18:08.960 Using TypeScript 5.6.3 (local user-provided)
+22:18:12.175 Using TypeScript 5.6.3 (local user-provided)
+22:18:15.456 Using TypeScript 5.6.3 (local user-provided)
+22:18:18.432 Using TypeScript 5.6.3 (local user-provided)
+22:18:18.907 Build Completed in /vercel/output [52s]
+22:18:20.154 Deploying outputs...
+22:18:36.669 Deployment completed
+22:18:37.323 Creating build cache...
