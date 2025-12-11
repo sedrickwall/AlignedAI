@@ -421,24 +421,38 @@ export default function Onboarding() {
 
   const saveStepData = async () => {
     try {
+      console.log("[Onboarding] saveStepData called for step:", currentStep);
+      console.log("[Onboarding] pendingData:", JSON.stringify(pendingData, null, 2));
+      
       if (currentStep === 1) {
-        await apiRequest("PATCH", "/api/profile/identity", pendingData.identity);
+        console.log("[Onboarding] Saving identity:", pendingData.identity);
+        const res = await apiRequest("PATCH", "/api/profile/identity", pendingData.identity);
+        console.log("[Onboarding] Identity save response status:", res.status);
       }
       if (currentStep === 2) {
-        await apiRequest("PATCH", "/api/profile/purpose", pendingData.purpose);
+        console.log("[Onboarding] Saving purpose:", pendingData.purpose);
+        const res = await apiRequest("PATCH", "/api/profile/purpose", pendingData.purpose);
+        console.log("[Onboarding] Purpose save response status:", res.status);
+      }
+      if (currentStep === 3) {
+        console.log("[Onboarding] Step 3 (pillars) - saved individually via handlers");
       }
       if (currentStep === 4) {
-        await apiRequest("PATCH", "/api/profile/vision", {
+        console.log("[Onboarding] Saving vision:", pendingData.vision);
+        const res = await apiRequest("PATCH", "/api/profile/vision", {
           ...pendingData.vision,
           year: new Date().getFullYear(),
         });
+        console.log("[Onboarding] Vision save response status:", res.status);
       }
       if (currentStep === 5) {
-        await apiRequest("PATCH", "/api/profile/capacity", pendingData.capacity);
+        console.log("[Onboarding] Saving capacity:", pendingData.capacity);
+        const res = await apiRequest("PATCH", "/api/profile/capacity", pendingData.capacity);
+        console.log("[Onboarding] Capacity save response status:", res.status);
       }
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/all"] });
     } catch (error) {
-      console.error("Error saving step data:", error);
+      console.error("[Onboarding] Error saving step data:", error);
       throw error;
     }
   };
