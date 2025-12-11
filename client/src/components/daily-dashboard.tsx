@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { VerseCard } from "./verse-card";
 import { AlignmentCard } from "./alignment-card";
 import { ScheduleCard } from "./schedule-card";
 import { ResetCard } from "./reset-card";
 import { AISuggestionCard } from "./ai-suggestion-card";
 import type { EnergyLevel, Task, TimeBlock } from "@shared/schema";
-import { useTaskEvaluator } from "@/hooks/useTaskEvaluator";
+import { useTaskEvaluator, type TaskEvaluationResponse } from "@/hooks/useTaskEvaluator";
 import type { MissionContext } from "../../../shared/taskEval.ts";
 
 
