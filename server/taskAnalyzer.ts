@@ -7,7 +7,7 @@ import type {
 } from "../shared/taskEval.js";
 
 
-const HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base";
+const HF_API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-base";
 const HF_TOKEN = process.env.HF_TOKEN;
 
 if (!HF_TOKEN) {
