@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
-
 initAdmin();
 const db = getFirestore();
 
@@ -18,19 +17,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const decoded = await getAuth().verifyIdToken(token);
     const uid = decoded.uid;
 
+    const ref = db.collection("onboarding").doc(uid);
+
     if (req.method === "GET") {
-      const snap = await db.collection("identity").doc(uid).get();
-      return res.json(snap.exists ? snap.data() : null);
+      const snap = await ref.get();
+      const data = snap.exists ? snap.data() : null;
+      return res.json(data?.identity ?? null);
     }
 
     if (req.method === "PATCH") {
-      const data = req.body;
-      await db.collection("identity").doc(uid).set(
-        { ...data, userId: uid, updatedAt: FieldValue.serverTimestamp() },
+      await ref.set(
+        {
+          identity: req.body,
+          progress: { 
+            identityComplete: true, 
+            updatedAt: FieldValue.serverTimestamp() 
+          },
+        },
         { merge: true }
       );
-      const updated = await db.collection("identity").doc(uid).get();
-      return res.json(updated.data());
+
+      return res.json({ success: true });
     }
 
     return res.status(405).json({ error: "Method not allowed" });

@@ -6,59 +6,43 @@ initAdmin();
 const db = getFirestore();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
   try {
-    // Validate Firebase auth token
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized: Missing token" });
-    }
-
-    const token = authHeader.split("Bearer ")[1];
     const { getAuth } = await import("firebase-admin/auth");
-    const decodedUser = await getAuth().verifyIdToken(token);
-    const uid = decodedUser.uid;
+    const token = authHeader.split("Bearer ")[1];
+    const decoded = await getAuth().verifyIdToken(token);
+    const uid = decoded.uid;
 
-    // ------------------------------------------
-    // GET CAPACITY (from onboarding/{uid}/capacity)
-    // ------------------------------------------
+    const ref = db.collection("onboarding").doc(uid);
+
     if (req.method === "GET") {
-      const docRef = db.collection("onboarding").doc(uid);
-      const snap = await docRef.get();
+      const snap = await ref.get();
       const data = snap.exists ? snap.data() : null;
-
       return res.json(data?.capacity ?? null);
     }
 
-    // ------------------------------------------
-    // PATCH CAPACITY (update onboarding/{uid}.capacity)
-    // ------------------------------------------
     if (req.method === "PATCH") {
-      const updates = req.body;
-
-      const docRef = db.collection("onboarding").doc(uid);
-
-      await docRef.set(
+      await ref.set(
         {
-          capacity: {
-            ...updates,
-          },
+          capacity: req.body,
           progress: {
+            capacityComplete: true,
             updatedAt: FieldValue.serverTimestamp(),
           },
         },
         { merge: true }
       );
 
-      const updatedDoc = await docRef.get();
-      return res.json(updatedDoc.data()?.capacity ?? {});
+      return res.json({ success: true });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err: any) {
     console.error("Capacity API error:", err);
-    return res.status(500).json({
-      error: "SERVER_CAPACITY_FAILURE",
-      message: err?.message,
-    });
+    return res.status(500).json({ error: err.message });
   }
 }

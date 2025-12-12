@@ -17,19 +17,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const decoded = await getAuth().verifyIdToken(token);
     const uid = decoded.uid;
 
+    const ref = db.collection("onboarding").doc(uid);
+
     if (req.method === "GET") {
-      const snap = await db.collection("purpose").doc(uid).get();
-      return res.json(snap.exists ? snap.data() : null);
+      const snap = await ref.get();
+      const data = snap.exists ? snap.data() : null;
+      return res.json(data?.purpose ?? null);
     }
 
     if (req.method === "PATCH") {
-      const data = req.body;
-      await db.collection("purpose").doc(uid).set(
-        { ...data, userId: uid, updatedAt: FieldValue.serverTimestamp() },
+      await ref.set(
+        {
+          purpose: req.body,
+          progress: { 
+            purposeComplete: true, 
+            updatedAt: FieldValue.serverTimestamp() 
+          },
+        },
         { merge: true }
       );
-      const updated = await db.collection("purpose").doc(uid).get();
-      return res.json(updated.data());
+
+      return res.json({ success: true });
     }
 
     return res.status(405).json({ error: "Method not allowed" });

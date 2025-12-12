@@ -1,0 +1,136 @@
+3️⃣ /api/profile/season-pillars.ts
+
+Supports GET, POST, PATCH, DELETE.
+
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { initAdmin } from "../../utils/initAdmin";
+import { verifyUser } from "../../utils/auth";
+
+initAdmin();
+const db = getFirestore();
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const uid = await verifyUser(req);
+    const ref = db.collection("onboarding").doc(uid);
+
+    const snap = await ref.get();
+    const existing = snap.data() ?? {};
+
+    const pillars: any[] = existing.seasonPillars ?? [];
+
+    // ---- GET ----
+    if (req.method === "GET") {
+      return res.json(pillars);
+    }
+
+    // ---- POST (ADD) ----
+    if (req.method === "POST") {
+      const newPillar = req.body;
+      pillars.push(newPillar);
+
+      await ref.set({ seasonPillars: pillars }, { merge: true });
+
+      return res.json(pillars);
+    }
+
+    // ---- PATCH (UPDATE) ----
+    if (req.method === "PATCH") {
+      const { id, updates } = req.body;
+
+      const updated = pillars.map((p) => (p.id === id ? { ...p, ...updates } : p));
+
+      await ref.set({ seasonPillars: updated }, { merge: true });
+
+      return res.json(updated);
+    }
+
+    // ---- DELETE ----
+    if (req.method === "DELETE") {
+      const { id } = req.body;
+
+      const filtered = pillars.filter((p) => p.id !== id);
+
+      await ref.set({ seasonPillars: filtered }, { merge: true });
+
+      return res.json(filtered);
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (err: any) {
+    console.error("Pillars API Error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+4️⃣ /api/profile/vision.ts
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { initAdmin } from "../../utils/initAdmin";
+import { verifyUser } from "../../utils/auth";
+
+initAdmin();
+const db = getFirestore();
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const uid = await verifyUser(req);
+
+    if (req.method === "PATCH") {
+      await db.collection("onboarding").doc(uid).set(
+        {
+          vision: req.body,
+          progress: { visionComplete: true, updatedAt: FieldValue.serverTimestamp() },
+        },
+        { merge: true }
+      );
+
+      return res.json({ success: true });
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (err: any) {
+    console.error("Vision API Error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+5️⃣ /api/profile/capacity.ts (updated from your last message)
+
+This is the corrected version that matches onboarding:
+
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { initAdmin } from "../../utils/initAdmin";
+import { verifyUser } from "../../utils/auth";
+
+initAdmin();
+const db = getFirestore();
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    const uid = await verifyUser(req);
+    const ref = db.collection("onboarding").doc(uid);
+
+    if (req.method === "PATCH") {
+      await ref.set(
+        {
+          capacity: req.body,
+          progress: {
+            capacityComplete: true,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+        },
+        { merge: true }
+      );
+
+      return res.json({ success: true });
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (err: any) {
+    console.error("Capacity API Error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
