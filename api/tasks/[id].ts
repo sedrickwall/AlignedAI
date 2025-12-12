@@ -4,22 +4,41 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin inline
-if (!admin.apps.length) {
-  const key = process.env.FIREBASE_ADMIN_KEY;
-  if (key) {
-    let serviceAccount: admin.ServiceAccount;
-    if (key.trim().startsWith("{")) {
-      serviceAccount = JSON.parse(key);
-    } else {
-      const decoded = Buffer.from(key, "base64").toString("utf-8");
-      serviceAccount = JSON.parse(decoded);
-    }
-    if (serviceAccount.privateKey) {
-      serviceAccount.privateKey = serviceAccount.privateKey.replace(/\\n/g, "\n");
-    }
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-  }
+let appInitialized = false;
+
+try {
+  admin.app();
+  appInitialized = true;
+} catch {
+  appInitialized = false;
 }
+
+if (!appInitialized) {
+  const key = process.env.FIREBASE_ADMIN_KEY;
+  if (!key) {
+    throw new Error("FIREBASE_ADMIN_KEY missing");
+  }
+
+  let serviceAccount: admin.ServiceAccount;
+
+  if (key.trim().startsWith("{")) {
+    serviceAccount = JSON.parse(key);
+  } else {
+    serviceAccount = JSON.parse(
+      Buffer.from(key, "base64").toString("utf-8")
+    );
+  }
+
+  if ((serviceAccount as any).private_key) {
+    (serviceAccount as any).private_key =
+      (serviceAccount as any).private_key.replace(/\\n/g, "\n");
+  }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
