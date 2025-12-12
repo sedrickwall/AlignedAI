@@ -1,44 +1,10 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { initAdmin } from "../ai/_lib/initAdmin";
 
-// Initialize Firebase Admin inline
-let appInitialized = false;
-
-try {
-  admin.app();
-  appInitialized = true;
-} catch {
-  appInitialized = false;
-}
-
-if (!appInitialized) {
-  const key = process.env.FIREBASE_ADMIN_KEY;
-  if (!key) {
-    throw new Error("FIREBASE_ADMIN_KEY missing");
-  }
-
-  let serviceAccount: admin.ServiceAccount;
-
-  if (key.trim().startsWith("{")) {
-    serviceAccount = JSON.parse(key);
-  } else {
-    serviceAccount = JSON.parse(
-      Buffer.from(key, "base64").toString("utf-8")
-    );
-  }
-
-  if ((serviceAccount as any).private_key) {
-    (serviceAccount as any).private_key =
-      (serviceAccount as any).private_key.replace(/\\n/g, "\n");
-  }
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
+// ✅ Initialize Firebase ONCE
+initAdmin();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -67,17 +33,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "PATCH") {
       const { completed } = req.body;
-      
+
       const snap = await dailyRef.get();
       const data = snap.data() || { tasks: [] };
       const tasks = data.tasks || [];
-      
-      const updatedTasks = tasks.map((task: any) => 
+
+      const updatedTasks = tasks.map((task: any) =>
         task.id === taskId ? { ...task, completed } : task
       );
-      
+
       await dailyRef.set({ tasks: updatedTasks }, { merge: true });
-      
       return res.status(200).json({ success: true });
     }
 
@@ -85,11 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const snap = await dailyRef.get();
       const data = snap.data() || { tasks: [] };
       const tasks = data.tasks || [];
-      
+
       const filteredTasks = tasks.filter((task: any) => task.id !== taskId);
-      
+
       await dailyRef.set({ tasks: filteredTasks }, { merge: true });
-      
       return res.status(200).json({ success: true });
     }
 

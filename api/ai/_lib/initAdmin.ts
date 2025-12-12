@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 
 export function initAdmin() {
   try {
-    admin.app(); // already initialized
+    admin.app();
     return;
   } catch {}
 
