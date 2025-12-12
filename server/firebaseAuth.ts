@@ -17,10 +17,36 @@ function getFirebaseAdmin(): Auth | null {
   
   try {
     if (getApps().length === 0) {
-      firebaseApp = initializeApp({
-        projectId,
-      });
-      console.log("Firebase Admin initialized with project:", projectId);
+      // Try to use service account credentials if available
+      const adminKey = process.env.FIREBASE_ADMIN_KEY;
+      
+      if (adminKey) {
+        let serviceAccount;
+        // Check if Base64 encoded
+        if (!adminKey.trim().startsWith('{')) {
+          const decoded = Buffer.from(adminKey, 'base64').toString('utf-8');
+          serviceAccount = JSON.parse(decoded);
+        } else {
+          serviceAccount = JSON.parse(adminKey);
+        }
+        
+        // Fix newlines in private key
+        if (serviceAccount.private_key) {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+        
+        firebaseApp = initializeApp({
+          credential: cert(serviceAccount),
+          projectId,
+        });
+        console.log("Firebase Admin initialized with service account");
+      } else {
+        // Fall back to project ID only (limited functionality)
+        firebaseApp = initializeApp({
+          projectId,
+        });
+        console.log("Firebase Admin initialized with project ID only (limited)");
+      }
     } else {
       firebaseApp = getApp();
     }
