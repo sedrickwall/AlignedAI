@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,11 @@ import {
   getOnboardingAll,
   updateOnboardingProgress,
   markOnboardingComplete,
+  saveIdentity,
+  savePurpose,
+  saveVision,
+  saveCapacity,
+  saveSeasonPillars,
   type FirestoreOnboardingProgress,
 } from "@/lib/onboardingFirebase";
 
@@ -462,43 +467,43 @@ export default function Onboarding() {
   }, [progress]);
 
   // ---------------------------------------
-  // SAVE FUNCTION
+  // SAVE FUNCTION (writes directly to Firestore)
   // ---------------------------------------
   const saveCurrentStep = async () => {
+    if (!user?.uid) return;
+    
     switch (currentStep) {
       case 1:
-        await apiRequest("PATCH", "/api/profile/identity", identity);
-        await updateOnboardingProgress(user!.uid, {
+        await saveIdentity(user.uid, identity);
+        await updateOnboardingProgress(user.uid, {
           identityComplete: true,
         });
         break;
 
       case 2:
-        await apiRequest("PATCH", "/api/profile/purpose", purpose);
-        await updateOnboardingProgress(user!.uid, {
+        await savePurpose(user.uid, purpose);
+        await updateOnboardingProgress(user.uid, {
           purposeComplete: true,
         });
         break;
 
       case 3:
-        await apiRequest("PATCH", "/api/profile/season-pillars", {
-          pillars,
-        });
-        await updateOnboardingProgress(user!.uid, {
+        await saveSeasonPillars(user.uid, pillars);
+        await updateOnboardingProgress(user.uid, {
           pillarsComplete: true,
         });
         break;
 
       case 4:
-        await apiRequest("PATCH", "/api/profile/vision", vision);
-        await updateOnboardingProgress(user!.uid, {
+        await saveVision(user.uid, vision);
+        await updateOnboardingProgress(user.uid, {
           visionComplete: true,
         });
         break;
 
       case 5:
-        await apiRequest("PATCH", "/api/profile/capacity", capacity);
-        await updateOnboardingProgress(user!.uid, {
+        await saveCapacity(user.uid, capacity);
+        await updateOnboardingProgress(user.uid, {
           capacityComplete: true,
         });
         break;
