@@ -1,9 +1,25 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { initAdmin } from "../utils/initAdmin.js";
+import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
-initAdmin();
+// Initialize Firebase Admin inline
+if (!admin.apps.length) {
+  const key = process.env.FIREBASE_ADMIN_KEY;
+  if (key) {
+    let serviceAccount: admin.ServiceAccount;
+    if (key.trim().startsWith("{")) {
+      serviceAccount = JSON.parse(key);
+    } else {
+      const decoded = Buffer.from(key, "base64").toString("utf-8");
+      serviceAccount = JSON.parse(decoded);
+    }
+    if (serviceAccount.privateKey) {
+      serviceAccount.privateKey = serviceAccount.privateKey.replace(/\\n/g, "\n");
+    }
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
