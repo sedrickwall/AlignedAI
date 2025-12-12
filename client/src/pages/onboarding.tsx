@@ -538,14 +538,19 @@ export default function Onboarding() {
   // COMPLETE
   // ---------------------------------------
   const handleComplete = async () => {
+    if (!user?.uid) return;
+    
     try {
       await saveCurrentStep();
 
-      await updateOnboardingProgress(user!.uid, {
+      await updateOnboardingProgress(user.uid, {
         onboardingComplete: true,
       });
 
-      await markOnboardingComplete(user!.uid);
+      await markOnboardingComplete(user.uid);
+      
+      // Clear cache so App.tsx gets fresh data
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
 
       toast({
         title: "Welcome to Aligned!",
@@ -566,10 +571,16 @@ export default function Onboarding() {
   // SKIP
   // ---------------------------------------
   const handleSkip = async () => {
-    await updateOnboardingProgress(user!.uid, {
+    if (!user?.uid) return;
+    
+    await updateOnboardingProgress(user.uid, {
       onboardingComplete: true,
     });
-    await markOnboardingComplete(user!.uid);
+    await markOnboardingComplete(user.uid);
+    
+    // Clear cache so App.tsx gets fresh data
+    await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
+    
     navigate("/");
   };
 
