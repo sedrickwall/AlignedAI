@@ -117,6 +117,52 @@ export async function markOnboardingComplete(uid: string): Promise<void> {
     onboardingComplete: true,
     capacityComplete: true,
   });
+  
+  // Initialize user data collections with defaults
+  await initializeUserData(uid);
+}
+
+// ✅ INITIALIZE USER DATA DOCUMENTS (daily, weekly, reflections)
+export async function initializeUserData(uid: string): Promise<void> {
+  // Initialize daily document
+  const dailyRef = doc(db, "daily", uid);
+  const dailySnap = await getDoc(dailyRef);
+  if (!dailySnap.exists()) {
+    await setDoc(dailyRef, {
+      energyLevel: "medium",
+      tasks: [],
+      schedule: [],
+      verse: {
+        text: "Commit your work to the Lord, and your plans will be established.",
+        reference: "Proverbs 16:3"
+      },
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  // Initialize weekly document
+  const weeklyRef = doc(db, "weekly", uid);
+  const weeklySnap = await getDoc(weeklyRef);
+  if (!weeklySnap.exists()) {
+    await setDoc(weeklyRef, {
+      pillars: [],
+      focusStatement: "",
+      topFive: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  // Initialize reflections document
+  const reflectionsRef = doc(db, "reflections", uid);
+  const reflectionsSnap = await getDoc(reflectionsRef);
+  if (!reflectionsSnap.exists()) {
+    await setDoc(reflectionsRef, {
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  }
 }
 
 // ✅ GET ALL ONBOARDING DATA (progress + profile sections)

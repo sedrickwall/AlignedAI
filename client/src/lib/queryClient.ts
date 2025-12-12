@@ -84,10 +84,19 @@ export const getQueryFn: <T>(options: {
       headers["Authorization"] = `Bearer ${token}`;
     }
     
-    const res = await fetch(queryKey.join("/") as string, {
+    // Build URL properly - if first element is full path, use it; otherwise join
+    const url = queryKey.length === 1 
+      ? (queryKey[0] as string)
+      : queryKey.join("/");
+    
+    console.log("[Query] Fetching:", url, "Token:", token ? "present" : "missing");
+    
+    const res = await fetch(url, {
       credentials: "include",
       headers,
     });
+
+    console.log("[Query] Response:", url, res.status);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

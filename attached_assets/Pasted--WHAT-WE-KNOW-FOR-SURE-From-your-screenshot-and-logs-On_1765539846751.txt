@@ -1,0 +1,198 @@
+🔴 WHAT WE KNOW FOR SURE
+
+From your screenshot and logs:
+
+Onboarding now completes correctly ✅
+
+User is authenticated (Log out button visible) ✅
+
+Home page renders layout but shows:
+
+“Failed to load data. Please refresh.”
+
+Console shows:
+
+/api/onboarding/all → 500
+/api/onboarding/get → 500
+/api/daily → fails
+/api/weekly → fails
+
+
+Your backend APIs require Authorization: Bearer <Firebase ID token>
+
+If any required API fails → dashboard falls back to “Failed to load data”
+
+So the issue is API responses, not React.
+
+✅ STEP 1 — VERIFY THE TOKEN IS ACTUALLY BEING SENT (CRITICAL)
+
+Open Chrome DevTools → Network tab
+Reload the Home page.
+
+Click one failing request, e.g.:
+
+/api/daily
+
+🔍 Check Request Headers
+
+You must see:
+
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+
+❌ If you do NOT see this:
+
+Your apiRequest() fix was not actually applied or not used everywhere.
+
+🔧 Confirm this:
+
+Search your project for fetch(
+If you see any raw fetch("/api/..."), those calls do not include the token.
+
+👉 Every API call must go through apiRequest()
+
+✅ STEP 2 — CONFIRM apiRequest IS USED BY REACT QUERY
+
+Your queries must look like this internally:
+
+useQuery({
+  queryKey: ["/api/daily"],
+  queryFn: () => apiRequest("GET", "/api/daily").then(res => res.json())
+})
+
+❌ If you are doing:
+useQuery({ queryKey: ["/api/daily"] })
+
+
+That means React Query is using a default fetcher → NO TOKEN → 401 → 500.
+
+🔧 Fix (MANDATORY)
+
+Open queryClient.ts and ensure you have:
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      queryFn: async ({ queryKey }) => {
+        const res = await apiRequest("GET", queryKey[0] as string);
+        return res.json();
+      }
+    }
+  }
+});
+
+
+If this is missing → dashboard will NEVER load.
+
+✅ STEP 3 — VERIFY EACH API WORKS IN ISOLATION (NON-NEGOTIABLE)
+
+Open DevTools → Console and run:
+
+await fetch("/api/daily", {
+  headers: {
+    Authorization: `Bearer ${await firebase.auth().currentUser.getIdToken()}`
+  }
+}).then(r => r.json())
+
+Expected:
+{
+  "energyLevel": "medium",
+  "tasks": [],
+  "schedule": [],
+  "verse": { "text": "...", "reference": "..." }
+}
+
+❌ If you get:
+
+401 → token not being verified
+
+500 → Firestore collection missing or server crash
+
+Repeat for:
+
+/api/weekly
+
+/api/reflections
+
+/api/ai/prioritize
+
+✅ STEP 4 — YOU ARE MISSING DEFAULT DOCUMENT CREATION (THIS IS BIG)
+
+Your dashboard assumes data exists.
+
+If these docs do not exist, your API crashes:
+
+Collection	Required
+daily/{uid}	❌ missing
+weekly/{uid}	❌ missing
+reflections/{uid}	❌ missing
+🔧 FIX THIS NOW (IMPORTANT)
+
+Add this once after onboarding completes:
+
+await db.collection("daily").doc(uid).set({
+  energyLevel: "medium",
+  tasks: [],
+  schedule: [],
+  verse: {
+    text: "Commit your work to the Lord.",
+    reference: "Proverbs 16:3"
+  }
+}, { merge: true });
+
+await db.collection("weekly").doc(uid).set({
+  pillars: [],
+  focusStatement: "",
+  topFive: []
+}, { merge: true });
+
+await db.collection("reflections").doc(uid).set({}, { merge: true });
+
+
+Without this → dashboard hard fails.
+
+✅ STEP 5 — CONFIRM FIRESTORE RULES (VERY COMMON ISSUE)
+
+Your Firestore rules must allow reads like:
+
+match /daily/{userId} {
+  allow read, write: if request.auth.uid == userId;
+}
+
+
+Repeat for:
+
+weekly
+
+reflections
+
+tasks
+
+schedule
+
+If rules block reads → API throws → 500 → dashboard blank.
+
+🎯 WHY THIS IS HAPPENING (SUMMARY)
+
+Your app is architecturally correct, but missing three production requirements:
+
+✅ Auth token propagation to API
+
+❌ Default Firestore documents on first login
+
+❌ Guaranteed API contract shape
+
+When any one fails → dashboard refuses to render.
+
+🚀 WHAT I RECOMMEND (NEXT)
+
+If you want this fixed permanently, I can:
+
+✅ Rewrite your API to auto-initialize user data
+
+✅ Add safe defaults so dashboard never breaks
+
+✅ Add server-side logging so you see errors instantly
+
+✅ Harden onboarding → dashboard transition
+
+Just say:
