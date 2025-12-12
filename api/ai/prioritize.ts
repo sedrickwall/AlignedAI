@@ -1,15 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import * as admin from "firebase-admin";
+import { initAdmin } from "../_lib/initAdmin";
 import { getAuth } from "firebase-admin/auth";
 
-if (!admin.apps.length) {
-  const key = process.env.FIREBASE_ADMIN_KEY;
-  if (key) {
-    const sa = key.trim().startsWith("{") ? JSON.parse(key) : JSON.parse(Buffer.from(key, "base64").toString("utf-8"));
-    if (sa.private_key) sa.private_key = sa.private_key.replace(/\\n/g, "\n");
-    admin.initializeApp({ credential: admin.credential.cert(sa) });
-  }
-}
+initAdmin();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -29,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       focusPillar: "Faith"
     });
   } catch (error: any) {
-    console.error("AI Prioritize API error:", error);
+    console.error("AI Prioritize error:", error);
     return res.status(500).json({ error: error.message });
   }
 }

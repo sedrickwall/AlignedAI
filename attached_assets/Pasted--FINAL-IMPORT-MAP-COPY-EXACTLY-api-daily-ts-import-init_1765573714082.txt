@@ -1,0 +1,127 @@
+✅ FINAL IMPORT MAP (COPY EXACTLY)
+api/daily.ts
+import { initAdmin } from "./_lib/initAdmin";
+initAdmin();
+
+api/weekly.ts
+import { initAdmin } from "./_lib/initAdmin";
+initAdmin();
+
+api/reflections.ts
+import { initAdmin } from "./_lib/initAdmin";
+initAdmin();
+
+api/evaluate-task.ts
+import { initAdmin } from "./_lib/initAdmin";
+initAdmin();
+
+api/tasks/[id].ts
+import { initAdmin } from "../_lib/initAdmin";
+initAdmin();
+
+api/daily/energy.ts
+import { initAdmin } from "../_lib/initAdmin";
+initAdmin();
+
+api/ai/prioritize.ts
+import { initAdmin } from "../_lib/initAdmin";
+initAdmin();
+
+❌ THINGS THAT MUST NOT EXIST (VERY IMPORTANT)
+
+Delete all of these if they exist:
+
+api/ai/_lib/
+api/ai/_lib/initAdmin.ts
+
+
+Delete all imports that reference:
+
+"api/ai/_lib/initAdmin"
+"./ai/_lib/initAdmin"
+
+
+If even one file still points there, Vercel will keep failing.
+
+❌ ALSO REMOVE THIS FROM EVERY API FILE
+
+If you still have any of this, delete it:
+
+import * as admin from "firebase-admin";
+
+let appInitialized = false;
+try { admin.app(); } catch {}
+
+admin.initializeApp(...)
+
+
+You must initialize only once via:
+
+initAdmin();
+
+✅ HOW TO VERIFY LOCALLY (DO THIS)
+
+From project root, run:
+
+ls api/_lib
+
+
+You must see:
+
+initAdmin.ts
+
+
+Then:
+
+grep -R "ai/_lib/initAdmin" api
+
+
+This command must return nothing.
+
+✅ WHY YOUR DASHBOARD IS BLANK
+
+Your frontend is doing exactly what it should:
+
+Fetching: /api/daily
+Fetching: /api/weekly
+Fetching: /api/reflections
+Fetching: /api/ai/prioritize
+
+
+But every request returns 500, so React Query never resolves, and the screen stays empty.
+
+Once the imports resolve → APIs return 200 → dashboard renders immediately.
+
+🚦 AFTER YOU FIX THE STRUCTURE
+
+Do exactly this sequence:
+
+git add api
+git commit -m "Fix initAdmin location and imports"
+git push
+
+
+Then redeploy.
+
+🟢 EXPECTED RESULT (NON-NEGOTIABLE)
+
+After this fix:
+
+❌ ERR_MODULE_NOT_FOUND → gone
+
+✅ /api/daily → 200
+
+✅ /api/weekly → 200
+
+✅ /api/reflections → 200
+
+✅ /api/ai/prioritize → 200
+
+✅ Dashboard + Home render
+
+If it still fails after this, paste only:
+
+tree api
+
+
+That will let me confirm the structure in one glance and close this permanently.
