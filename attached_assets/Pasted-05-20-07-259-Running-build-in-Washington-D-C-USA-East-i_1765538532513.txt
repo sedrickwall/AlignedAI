@@ -1,0 +1,65 @@
+05:20:07.259 Running build in Washington, D.C., USA (East) – iad1
+05:20:07.260 Build machine configuration: 2 cores, 8 GB
+05:20:07.403 Cloning github.com/sedrickwall/AlignedAI (Branch: main, Commit: ec96f6b)
+05:20:07.646 Cloning completed: 242.000ms
+05:20:08.490 Restored build cache from previous deployment (BKnZ3ggdNuEBJjeEgoeDyiqsowrC)
+05:20:08.907 Running "vercel build"
+05:20:09.336 Vercel CLI 50.0.0
+05:20:10.109 Installing dependencies...
+05:20:11.992 
+05:20:11.993 up to date in 2s
+05:20:11.994 
+05:20:11.994 87 packages are looking for funding
+05:20:11.994   run `npm fund` for details
+05:20:12.158 
+05:20:12.159 > rest-express@1.0.0 vite-build
+05:20:12.159 > vite build
+05:20:12.159 
+05:20:12.471 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+05:20:12.535 transforming...
+05:20:13.787 
+05:20:13.787 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+05:20:17.892 [32m✓[39m 1756 modules transformed.
+05:20:18.359 rendering chunks...
+05:20:18.376 computing gzip size...
+05:20:18.403 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  2.51 kB[22m[1m[22m[2m │ gzip:   0.91 kB[22m
+05:20:18.404 [2m../dist/public/[22m[2massets/[22m[35mindex-CuM6t_OQ.css  [39m[1m[2m 75.68 kB[22m[1m[22m[2m │ gzip:  12.40 kB[22m
+05:20:18.409 [2m../dist/public/[22m[2massets/[22m[36mindex-BdaSVApX.js   [39m[1m[33m839.80 kB[39m[22m[2m │ gzip: 224.26 kB[22m
+05:20:18.409 [32m✓ built in 5.90s[39m
+05:20:18.409 [33m
+05:20:18.410 (!) Some chunks are larger than 500 kB after minification. Consider:
+05:20:18.410 - Using dynamic import() to code-split the application
+05:20:18.410 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+05:20:18.410 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+05:20:18.722 Using TypeScript 5.6.3 (local user-provided)
+05:20:28.441 Using TypeScript 5.6.3 (local user-provided)
+05:20:32.257 Using TypeScript 5.6.3 (local user-provided)
+05:20:35.657 Using TypeScript 5.6.3 (local user-provided)
+05:20:38.993 Using TypeScript 5.6.3 (local user-provided)
+05:20:42.937 Using TypeScript 5.6.3 (local user-provided)
+05:20:43.340 api/onboarding/complete.ts(2,24): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'doc'.
+05:20:43.341 api/onboarding/complete.ts(2,29): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'updateDoc'.
+05:20:43.341 api/onboarding/complete.ts(2,40): error TS2305: Module '"firebase-admin/firestore"' has no exported member 'serverTimestamp'.
+05:20:43.341 api/onboarding/complete.ts(9,7): error TS2304: Cannot find name 'r'.
+05:20:43.342 api/onboarding/complete.ts(30,22): error TS2304: Cannot find name 'FieldValue'.
+05:20:43.342 api/onboarding/complete.ts(38,54): error TS2304: Cannot find name 'y'.
+05:20:43.342 api/onboarding/complete.ts(9,9): error TS1005: ')' expected.
+05:20:43.342 api/onboarding/complete.ts(38,54): error TS1434: Unexpected keyword or identifier.
+05:20:43.342 api/onboarding/complete.ts(38,55): error TS1128: Declaration or statement expected.
+05:20:43.342 api/onboarding/complete.ts(42,1): error TS1005: '}' expected.
+05:20:43.342 
+05:20:46.737 Using TypeScript 5.6.3 (local user-provided)
+05:20:50.002 Using TypeScript 5.6.3 (local user-provided)
+05:20:53.314 Using TypeScript 5.6.3 (local user-provided)
+05:20:56.625 Using TypeScript 5.6.3 (local user-provided)
+05:20:59.973 Using TypeScript 5.6.3 (local user-provided)
+05:21:03.829 Using TypeScript 5.6.3 (local user-provided)
+05:21:07.227 Using TypeScript 5.6.3 (local user-provided)
+05:21:11.027 Using TypeScript 5.6.3 (local user-provided)
+05:21:14.577 Using TypeScript 5.6.3 (local user-provided)
+05:21:18.253 Using TypeScript 5.6.3 (local user-provided)
+05:21:18.729 Using TypeScript 5.6.3 (local user-provided)
+05:21:22.357 Using TypeScript 5.6.3 (local user-provided)
+05:21:26.477 Build Completed in /vercel/output [1m]
+05:21:28.227 Deploying outputs...
+05:21:38.262 Error: No more than 12 Serverless Functions can be added to a Deployment on the Hobby plan. Create a team (Pro plan) to deploy more. Learn More: https://vercel.link/function-count-limit
