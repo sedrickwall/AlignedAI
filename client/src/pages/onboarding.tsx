@@ -1,9 +1,11 @@
-// client/src/pages/onboarding.tsx
+// -----------------------------------------------------
+// CLEAN + CORRECTED ONBOARDING FLOW (FINAL VERSION)
+// -----------------------------------------------------
 
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,17 +15,25 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+
 import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  X,
   Sparkles,
   Heart,
   Target,
   Calendar,
   Battery,
+  Plus,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+
+import {
+  getOnboardingProgress,
+  updateOnboardingProgress,
+  markOnboardingComplete,
+  type FirestoreOnboardingProgress,
+} from "@/lib/onboardingFirebase";
 
 import type {
   IdentityProfile,
@@ -33,231 +43,136 @@ import type {
   CapacityProfile,
 } from "@shared/schema";
 
-import {
-  getOnboardingAll,
-  updateOnboardingProgress,
-  markOnboardingComplete,
-  saveIdentity,
-  savePurpose,
-  saveVision,
-  saveCapacity,
-  saveSeasonPillars,
-  type FirestoreOnboardingDocument,
-} from "@/lib/onboardingFirebase";
-
 import { useAuth } from "@/hooks/useAuth";
-import { auth } from "@/lib/firebase";
 
-//-----------------------------------------------------
-// STEP INFO
-//-----------------------------------------------------
+// -----------------------------------------------------
+// TAG INPUT COMPONENT
+// -----------------------------------------------------
+function TagInput({ value, onChange, placeholder }: any) {
+  const [input, setInput] = useState("");
 
-const stepInfo = [
-  {
-    number: 1,
-    title: "Your Identity",
-    description: "Discover your God-given gifts and developed skills",
-    icon: Sparkles,
-  },
-  {
-    number: 2,
-    title: "Your Purpose",
-    description: "Define who you're called to serve and bless",
-    icon: Heart,
-  },
-  {
-    number: 3,
-    title: "Season Pillars",
-    description: "Set your focus areas for this season of life",
-    icon: Target,
-  },
-  {
-    number: 4,
-    title: "Your Vision",
-    description: "Map out your year with intentional goals",
-    icon: Calendar,
-  },
-  {
-    number: 5,
-    title: "Your Capacity",
-    description: "Understand your energy and availability",
-    icon: Battery,
-  },
-];
-
-//-----------------------------------------------------
-// TAG INPUT
-//-----------------------------------------------------
-
-function TagInput({
-  value,
-  onChange,
-  placeholder,
-  testId,
-}: {
-  value: string[];
-  onChange: (tags: string[]) => void;
-  placeholder: string;
-  testId: string;
-}) {
-  const [inputValue, setInputValue] = useState("");
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && inputValue.trim()) {
+  const handleAdd = (e: any) => {
+    if (e.key === "Enter" && input.trim()) {
       e.preventDefault();
-      if (!value.includes(inputValue.trim())) {
-        onChange([...value, inputValue.trim()]);
+      if (!value.includes(input.trim())) {
+        onChange([...value, input.trim()]);
       }
-      setInputValue("");
+      setInput("");
     }
   };
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {value.map((tag) => (
-          <Badge key={tag} variant="secondary" className="gap-1">
-            {tag}
+        {value.map((v: string) => (
+          <Badge key={v} variant="secondary">
+            {v}
             <button
               type="button"
-              onClick={() => onChange(value.filter((t) => t !== tag))}
-              data-testid={`button-remove-tag-${tag}`}
+              onClick={() => onChange(value.filter((t: string) => t !== v))}
             >
-              <X className="h-3 w-3" />
+              <X className="h-3 w-3 ml-1" />
             </button>
           </Badge>
         ))}
       </div>
+
       <Input
-        value={inputValue}
+        value={input}
         placeholder={placeholder}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        data-testid={testId}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleAdd}
       />
+
       <p className="text-xs text-muted-foreground">Press Enter to add</p>
     </div>
   );
 }
 
-//-----------------------------------------------------
-// IDENTITY STEP
-//-----------------------------------------------------
-
-function IdentityStep({
-  data,
-  onUpdate,
-}: {
-  data: Partial<IdentityProfile>;
-  onUpdate: (updates: Partial<IdentityProfile>) => void;
-}) {
-  const [gifts, setGifts] = useState<string[]>(data.gifts ?? []);
-  const [skills, setSkills] = useState<string[]>(data.skills ?? []);
-  const [interests, setInterests] = useState<string[]>(data.interests ?? []);
-  const [passions, setPassions] = useState<string[]>(data.passions ?? []);
+// -----------------------------------------------------
+// STEP 1 — IDENTITY
+// -----------------------------------------------------
+function IdentityStep({ data, onUpdate }: any) {
+  const [gifts, setGifts] = useState(data.gifts ?? []);
+  const [skills, setSkills] = useState(data.skills ?? []);
+  const [interests, setInterests] = useState(data.interests ?? []);
+  const [passions, setPassions] = useState(data.passions ?? []);
   const [strongestTalent, setStrongestTalent] = useState(
     data.strongestTalent ?? ""
   );
 
   useEffect(() => {
-    onUpdate({ gifts, skills, interests, passions, strongestTalent });
-  }, [gifts, skills, interests, passions, strongestTalent, onUpdate]);
+    onUpdate({
+      gifts,
+      skills,
+      interests,
+      passions,
+      strongestTalent,
+    });
+  }, [gifts, skills, interests, passions, strongestTalent]);
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <Sparkles className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h2 className="text-2xl font-semibold">Discover Your Identity</h2>
-        <p className="text-muted-foreground mt-2">
-          God has uniquely designed you with gifts and abilities.
-        </p>
-      </div>
+      <SectionHeader icon={Sparkles} title="Discover Your Identity" />
 
-      <TagInput
-        value={gifts}
-        onChange={setGifts}
-        placeholder="Add a gift..."
-        testId="input-gift"
-      />
-      <TagInput
-        value={skills}
-        onChange={setSkills}
-        placeholder="Add a skill..."
-        testId="input-skill"
-      />
+      <TagInput value={gifts} onChange={setGifts} placeholder="Add gift…" />
+      <TagInput value={skills} onChange={setSkills} placeholder="Add skill…" />
       <TagInput
         value={interests}
         onChange={setInterests}
-        placeholder="Add an interest..."
-        testId="input-interest"
+        placeholder="Add interest…"
       />
       <TagInput
         value={passions}
         onChange={setPassions}
-        placeholder="Add a passion..."
-        testId="input-passion"
+        placeholder="Add passion…"
       />
 
       <Textarea
-        className="min-h-[120px]"
         value={strongestTalent}
-        placeholder="Describe your strongest talent..."
+        placeholder="Describe your strongest talent…"
         onChange={(e) => setStrongestTalent(e.target.value)}
-        data-testid="textarea-strongest-talent"
       />
     </div>
   );
 }
 
-//-----------------------------------------------------
-// PURPOSE STEP
-//-----------------------------------------------------
-
-function PurposeStep({
-  data,
-  onUpdate,
-}: {
-  data: Partial<PurposeProfile>;
-  onUpdate: (updates: Partial<PurposeProfile>) => void;
-}) {
-  const [whoToBlessing, setWhoToBlessing] = useState<string[]>(
+// -----------------------------------------------------
+// STEP 2 — PURPOSE
+// -----------------------------------------------------
+function PurposeStep({ data, onUpdate }: any) {
+  const [whoToBlessing, setWhoToBlessing] = useState(
     data.whoToBlessing ?? []
   );
-  const [generosityTargets, setGenerosityTargets] = useState<
-    Record<string, number>
-  >(
-    (data.generosityTargets as Record<string, number>) ?? {
+  const [purposeStatement, setPurposeStatement] = useState(
+    data.purposeStatement ?? ""
+  );
+  const [generosityTargets, setGenerosityTargets] = useState(
+    data.generosityTargets ?? {
       lovedOnes: 25,
       strangers: 25,
       community: 25,
       kingdom: 25,
     }
   );
-  const [purposeStatement, setPurposeStatement] = useState(
-    data.purposeStatement ?? ""
-  );
 
   useEffect(() => {
-    onUpdate({ whoToBlessing, generosityTargets, purposeStatement });
-  }, [whoToBlessing, generosityTargets, purposeStatement, onUpdate]);
+    onUpdate({ whoToBlessing, purposeStatement, generosityTargets });
+  }, [whoToBlessing, purposeStatement, generosityTargets]);
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <Heart className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h2 className="text-2xl font-semibold">Define Your Purpose</h2>
-      </div>
+      <SectionHeader icon={Heart} title="Define Your Purpose" />
 
       <TagInput
         value={whoToBlessing}
         onChange={setWhoToBlessing}
-        placeholder="Add a group to bless..."
-        testId="input-who"
+        placeholder="Add person/group to bless…"
       />
 
       {Object.keys(generosityTargets).map((key) => (
         <div key={key}>
-          <Label className="text-sm capitalize">{key}</Label>
+          <Label>{key}</Label>
           <input
             type="range"
             min="0"
@@ -274,164 +189,133 @@ function PurposeStep({
       ))}
 
       <Textarea
-        className="min-h-[120px]"
+        placeholder="I exist to…"
         value={purposeStatement}
-        placeholder="I exist to..."
         onChange={(e) => setPurposeStatement(e.target.value)}
-        data-testid="textarea-purpose"
       />
     </div>
   );
 }
 
-//-----------------------------------------------------
-// PILLARS STEP
-//-----------------------------------------------------
-
-function PillarsStep({
-  data,
-  onChange,
-}: {
-  data: SeasonPillar[];
-  onChange: (pillars: SeasonPillar[]) => void;
-}) {
-  const [newPillarName, setNewPillarName] = useState("");
+// -----------------------------------------------------
+// STEP 3 — SEASON PILLARS
+// -----------------------------------------------------
+function PillarsStep({ data, onChange }: any) {
+  const [newPillar, setNewPillar] = useState("");
 
   const addPillar = () => {
-    if (!newPillarName.trim()) return;
+    if (!newPillar.trim()) return;
     const pillar: SeasonPillar = {
       id: crypto.randomUUID(),
-      name: newPillarName.trim(),
+      name: newPillar.trim(),
       description: "",
       weeklyHoursBudget: 0,
-    } as SeasonPillar;
+    };
     onChange([...data, pillar]);
-    setNewPillarName("");
-  };
-
-  const updatePillar = (id: string, updates: Partial<SeasonPillar>) => {
-    onChange(
-      data.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    );
-  };
-
-  const deletePillar = (id: string) => {
-    onChange(data.filter((p) => p.id !== id));
+    setNewPillar("");
   };
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <Target className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h2 className="text-2xl font-semibold">Season Pillars</h2>
-      </div>
+      <SectionHeader icon={Target} title="Season Pillars" />
 
-      <div className="space-y-4">
-        <Label className="text-base font-medium">Your Pillars</Label>
-
-        {data.map((pillar) => (
-          <Card key={pillar.id}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span>{pillar.name}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => deletePillar(pillar.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <Textarea
-                value={pillar.description || ""}
-                onChange={(e) =>
-                  updatePillar(pillar.id, { description: e.target.value })
+      {data.map((pillar: SeasonPillar) => (
+        <Card key={pillar.id}>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between">
+              <span>{pillar.name}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() =>
+                  onChange(data.filter((p: any) => p.id !== pillar.id))
                 }
-              />
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-              <Input
-                type="number"
-                placeholder="Hours per week"
-                value={pillar.weeklyHoursBudget ?? ""}
-                onChange={(e) =>
-                  updatePillar(pillar.id, {
-                    weeklyHoursBudget: parseInt(e.target.value) || 0,
-                  })
-                }
-              />
-            </CardContent>
-          </Card>
-        ))}
+            <Textarea
+              value={pillar.description}
+              onChange={(e) =>
+                onChange(
+                  data.map((p: any) =>
+                    p.id === pillar.id
+                      ? { ...p, description: e.target.value }
+                      : p
+                  )
+                )
+              }
+            />
 
-        <div className="flex gap-2">
-          <Input
-            value={newPillarName}
-            placeholder="New Pillar"
-            onChange={(e) => setNewPillarName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addPillar()}
-          />
-          <Button onClick={addPillar}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+            <Input
+              type="number"
+              placeholder="Weekly hours"
+              value={pillar.weeklyHoursBudget}
+              onChange={(e) =>
+                onChange(
+                  data.map((p: any) =>
+                    p.id === pillar.id
+                      ? {
+                          ...p,
+                          weeklyHoursBudget: parseInt(e.target.value) || 0,
+                        }
+                      : p
+                  )
+                )
+              }
+            />
+          </CardContent>
+        </Card>
+      ))}
+
+      <div className="flex gap-2">
+        <Input
+          value={newPillar}
+          placeholder="New Pillar"
+          onChange={(e) => setNewPillar(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addPillar()}
+        />
+        <Button onClick={addPillar}>
+          <Plus />
+        </Button>
       </div>
     </div>
   );
 }
 
-//-----------------------------------------------------
-// VISION STEP
-//-----------------------------------------------------
-
-function VisionStep({
-  data,
-  onUpdate,
-}: {
-  data: Partial<VisionMap>;
-  onUpdate: (updates: Partial<VisionMap>) => void;
-}) {
-  const currentYear = new Date().getFullYear();
+// -----------------------------------------------------
+// STEP 4 — VISION
+// -----------------------------------------------------
+function VisionStep({ data, onUpdate }: any) {
   const [yearVision, setYearVision] = useState(data.yearVision ?? "");
-  const [quarterlyOutcomes, setQuarterlyOutcomes] = useState<
-    Record<string, string>
-  >(
-    (data.quarterlyOutcomes as Record<string, string>) ?? {
-      Q1: "",
-      Q2: "",
-      Q3: "",
-      Q4: "",
-    }
+  const [quarterlyOutcomes, setQuarterlyOutcomes] = useState(
+    data.quarterlyOutcomes ?? { Q1: "", Q2: "", Q3: "", Q4: "" }
   );
 
   useEffect(() => {
     onUpdate({
-      year: currentYear,
+      year: new Date().getFullYear(),
       yearVision,
       quarterlyOutcomes,
     });
-  }, [yearVision, quarterlyOutcomes, onUpdate, currentYear]);
+  }, [yearVision, quarterlyOutcomes]);
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <Calendar className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h2 className="text-2xl font-semibold">Year Vision</h2>
-      </div>
+      <SectionHeader icon={Calendar} title="Your Vision" />
 
       <Textarea
-        className="min-h-[120px]"
         value={yearVision}
         onChange={(e) => setYearVision(e.target.value)}
-        placeholder="This year I will..."
+        placeholder="This year I will…"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {Object.keys(quarterlyOutcomes).map((q) => (
           <Textarea
             key={q}
-            className="min-h-[80px]"
-            placeholder={`${q} outcomes...`}
+            placeholder={`${q} outcomes…`}
             value={quarterlyOutcomes[q]}
             onChange={(e) =>
               setQuarterlyOutcomes({
@@ -446,25 +330,16 @@ function VisionStep({
   );
 }
 
-//-----------------------------------------------------
-// CAPACITY STEP
-//-----------------------------------------------------
-
-function CapacityStep({
-  data,
-  onUpdate,
-}: {
-  data: Partial<CapacityProfile>;
-  onUpdate: (updates: Partial<CapacityProfile>) => void;
-}) {
+// -----------------------------------------------------
+// STEP 5 — CAPACITY
+// -----------------------------------------------------
+function CapacityStep({ data, onUpdate }: any) {
   const [weeklyAvailableHours, setWeeklyAvailableHours] = useState(
     data.weeklyAvailableHours ?? 40
   );
-
   const [emotionalBandwidth, setEmotionalBandwidth] = useState(
     data.emotionalBandwidth ?? "medium"
   );
-
   const [seasonOfLife, setSeasonOfLife] = useState(
     data.seasonOfLife ?? ""
   );
@@ -475,210 +350,245 @@ function CapacityStep({
       emotionalBandwidth,
       seasonOfLife,
     });
-  }, [weeklyAvailableHours, emotionalBandwidth, seasonOfLife, onUpdate]);
+  }, [weeklyAvailableHours, emotionalBandwidth, seasonOfLife]);
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-8">
-        <Battery className="h-12 w-12 mx-auto text-primary mb-4" />
-        <h2 className="text-2xl font-semibold">Your Capacity</h2>
+      <SectionHeader icon={Battery} title="Your Capacity" />
+
+      <Label>Weekly Available Hours</Label>
+      <input
+        type="range"
+        min="5"
+        max="60"
+        value={weeklyAvailableHours}
+        onChange={(e) =>
+          setWeeklyAvailableHours(parseInt(e.target.value))
+        }
+      />
+      <p>{weeklyAvailableHours} hours/week</p>
+
+      <Label>Emotional Bandwidth</Label>
+      <div className="flex gap-2">
+        {["low", "medium", "high"].map((level) => (
+          <Button
+            key={level}
+            variant={emotionalBandwidth === level ? "default" : "outline"}
+            onClick={() => setEmotionalBandwidth(level)}
+          >
+            {level}
+          </Button>
+        ))}
       </div>
 
-      <div>
-        <Label>Weekly Available Hours</Label>
-        <input
-          type="range"
-          min="5"
-          max="60"
-          value={weeklyAvailableHours}
-          onChange={(e) =>
-            setWeeklyAvailableHours(parseInt(e.target.value))
-          }
-        />
-        <p className="text-sm mt-1">{weeklyAvailableHours} hours/week</p>
-      </div>
-
-      <div>
-        <Label>Emotional Bandwidth</Label>
-        <div className="flex gap-2">
-          {["low", "medium", "high"].map((level) => (
-            <Button
-              key={level}
-              variant={
-                emotionalBandwidth === level ? "default" : "outline"
-              }
-              onClick={() => setEmotionalBandwidth(level)}
-            >
-              {level}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label>Season of Life</Label>
-        <Textarea
-          className="min-h-[100px]"
-          value={seasonOfLife}
-          onChange={(e) => setSeasonOfLife(e.target.value)}
-        />
-      </div>
+      <Label>Season of Life</Label>
+      <Textarea
+        value={seasonOfLife}
+        onChange={(e) => setSeasonOfLife(e.target.value)}
+      />
     </div>
   );
 }
 
-//-----------------------------------------------------
-// MAIN ONBOARDING COMPONENT
-//-----------------------------------------------------
+// -----------------------------------------------------
+// REUSABLE HEADER
+// -----------------------------------------------------
+function SectionHeader({ icon: Icon, title }: any) {
+  return (
+    <div className="text-center mb-8">
+      <Icon className="h-12 w-12 mx-auto text-primary mb-4" />
+      <h2 className="text-2xl font-semibold">{title}</h2>
+    </div>
+  );
+}
 
+// -----------------------------------------------------
+// MAIN ONBOARDING COMPONENT
+// -----------------------------------------------------
 export default function Onboarding() {
-  const [, setLocation] = useLocation();
-  const { toast } = useToast();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [identity, setIdentity] = useState<Partial<IdentityProfile>>({});
-  const [purpose, setPurpose] = useState<Partial<PurposeProfile>>({});
-  const [pillars, setPillars] = useState<SeasonPillar[]>([]);
-  const [vision, setVision] = useState<Partial<VisionMap>>({});
-  const [capacity, setCapacity] = useState<Partial<CapacityProfile>>({});
 
-  const { data, isLoading } = useQuery<FirestoreOnboardingDocument>({
+  const [identity, setIdentity] = useState({});
+  const [purpose, setPurpose] = useState({});
+  const [pillars, setPillars] = useState<SeasonPillar[]>([]);
+  const [vision, setVision] = useState({});
+  const [capacity, setCapacity] = useState({});
+
+  // ---------------------------------------
+  // LOAD SERVER DATA
+  // ---------------------------------------
+  const { data, isLoading } = useQuery({
     queryKey: ["onboarding-all", user?.uid],
     enabled: !!user,
+    queryFn: async () => apiRequest("GET", "/api/onboarding/all"),
+  });
+
+  // ---------------------------------------
+  // LOAD FIREBASE PROGRESS
+  // ---------------------------------------
+  const { data: progress } = useQuery({
+    queryKey: ["onboarding-progress", user?.uid],
+    enabled: !!user,
     queryFn: async () => {
-      if (!user) throw new Error("No user");
-      return await getOnboardingAll(user.uid);
+      return await getOnboardingProgress(user!.uid);
     },
   });
 
-  // hydrate local state when data loads
+  // ---------------------------------------
+  // HYDRATE DATA
+  // ---------------------------------------
   useEffect(() => {
     if (!data) return;
+
     setIdentity(data.identity ?? {});
     setPurpose(data.purpose ?? {});
     setPillars(data.seasonPillars ?? []);
     setVision(data.vision ?? {});
     setCapacity(data.capacity ?? {});
-    if (data.progress?.currentStep) {
-      setCurrentStep(data.progress.currentStep);
-    }
   }, [data]);
 
-  if (!user) {
+  // ---------------------------------------
+  // HYDRATE STEP FROM FIRESTORE
+  // ---------------------------------------
+  useEffect(() => {
+    if (progress?.currentStep) {
+      setCurrentStep(progress.currentStep);
+    }
+  }, [progress]);
+
+  // ---------------------------------------
+  // SAVE FUNCTION
+  // ---------------------------------------
+  const saveCurrentStep = async () => {
+    switch (currentStep) {
+      case 1:
+        await apiRequest("PATCH", "/api/profile/identity", identity);
+        await updateOnboardingProgress(user!.uid, {
+          identityComplete: true,
+        });
+        break;
+
+      case 2:
+        await apiRequest("PATCH", "/api/profile/purpose", purpose);
+        await updateOnboardingProgress(user!.uid, {
+          purposeComplete: true,
+        });
+        break;
+
+      case 3:
+        await apiRequest("PATCH", "/api/profile/season-pillars", {
+          pillars,
+        });
+        await updateOnboardingProgress(user!.uid, {
+          pillarsComplete: true,
+        });
+        break;
+
+      case 4:
+        await apiRequest("PATCH", "/api/profile/vision", vision);
+        await updateOnboardingProgress(user!.uid, {
+          visionComplete: true,
+        });
+        break;
+
+      case 5:
+        await apiRequest("PATCH", "/api/profile/capacity", capacity);
+        await updateOnboardingProgress(user!.uid, {
+          capacityComplete: true,
+        });
+        break;
+    }
+
+    queryClient.invalidateQueries();
+  };
+
+  // ---------------------------------------
+  // NEXT STEP
+  // ---------------------------------------
+  const handleNext = async () => {
+    try {
+      await saveCurrentStep();
+      const nextStep = Math.min(currentStep + 1, 5);
+
+      await updateOnboardingProgress(user!.uid, {
+        currentStep: nextStep,
+      });
+
+      setCurrentStep(nextStep);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Could not save.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ---------------------------------------
+  // COMPLETE
+  // ---------------------------------------
+  const handleComplete = async () => {
+    try {
+      await saveCurrentStep();
+
+      await updateOnboardingProgress(user!.uid, {
+        onboardingComplete: true,
+      });
+
+      await markOnboardingComplete(user!.uid);
+
+      toast({
+        title: "Welcome to Aligned!",
+        description: "Your rhythm is ready.",
+      });
+
+      navigate("/");
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Could not finish setup.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ---------------------------------------
+  // SKIP
+  // ---------------------------------------
+  const handleSkip = async () => {
+    await updateOnboardingProgress(user!.uid, {
+      onboardingComplete: true,
+    });
+    await markOnboardingComplete(user!.uid);
+    navigate("/");
+  };
+
+  // ---------------------------------------
+  // LOADING
+  // ---------------------------------------
+  if (isLoading || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>You must be logged in to complete onboarding.</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Skeleton className="h-10 w-10 mx-auto" />
+        <Skeleton className="h-10 w-10" />
       </div>
     );
   }
 
   const progressPercent = (currentStep / 5) * 100;
 
-  const saveCurrentStep = async () => {
-    const uid = user.uid;
-    switch (currentStep) {
-      case 1:
-        await saveIdentity(uid, identity);
-        await updateOnboardingProgress(uid, { identityComplete: true });
-        break;
-      case 2:
-        await savePurpose(uid, purpose);
-        await updateOnboardingProgress(uid, { purposeComplete: true });
-        break;
-      case 3:
-        await saveSeasonPillars(uid, pillars);
-        await updateOnboardingProgress(uid, { pillarsComplete: true });
-        break;
-      case 4:
-        await saveVision(uid, vision);
-        await updateOnboardingProgress(uid, { visionComplete: true });
-        break;
-      case 5:
-        await saveCapacity(uid, capacity);
-        await updateOnboardingProgress(uid, { capacityComplete: true });
-        break;
-    }
-  };
-
-  const handleNext = async () => {
-    try {
-      await saveCurrentStep();
-      const nextStep = Math.min(currentStep + 1, 5);
-      await updateOnboardingProgress(user.uid, { currentStep: nextStep });
-      setCurrentStep(nextStep);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Could not save. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleComplete = async () => {
-    try {
-      await saveCurrentStep();
-      await updateOnboardingProgress(user.uid, {
-        onboardingComplete: true,
-        capacityComplete: true,
-      });
-      await markOnboardingComplete(user.uid);
-
-      // Invalidate the cache so App.tsx gets the updated status
-      await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
-
-      toast({
-        title: "Welcome to Aligned!",
-        description: "Your profile is set up. Let's start your journey.",
-      });
-      setLocation("/");
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to complete setup. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSkip = async () => {
-    try {
-      await updateOnboardingProgress(user.uid, {
-        onboardingComplete: true,
-      });
-      await markOnboardingComplete(user.uid);
-      
-      // Invalidate the cache so App.tsx gets the updated status
-      await queryClient.invalidateQueries({ queryKey: ["onboarding-progress"] });
-      
-      setLocation("/");
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to skip onboarding. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  // ---------------------------------------
+  // RENDER
+  // ---------------------------------------
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
+          <div className="flex justify-between">
             <h1 className="text-lg font-semibold">Getting Started</h1>
             <Button variant="ghost" size="sm" onClick={handleSkip}>
               Skip for now
@@ -687,35 +597,32 @@ export default function Onboarding() {
           <Progress value={progressPercent} className="h-2" />
         </div>
 
-        {/* Card */}
         <Card className="shadow-lg">
           <CardContent className="p-6 md:p-8">
             {currentStep === 1 && (
               <IdentityStep data={identity} onUpdate={setIdentity} />
             )}
-
             {currentStep === 2 && (
               <PurposeStep data={purpose} onUpdate={setPurpose} />
             )}
-
             {currentStep === 3 && (
               <PillarsStep data={pillars} onChange={setPillars} />
             )}
-
             {currentStep === 4 && (
               <VisionStep data={vision} onUpdate={setVision} />
             )}
-
             {currentStep === 5 && (
               <CapacityStep data={capacity} onUpdate={setCapacity} />
             )}
 
-            {/* Navigation buttons */}
+            {/* Navigation */}
             <div className="flex justify-between mt-8 pt-6 border-t">
               <Button
                 variant="outline"
                 disabled={currentStep === 1}
-                onClick={() => setCurrentStep((prev) => prev - 1)}
+                onClick={() =>
+                  setCurrentStep((prev) => Math.max(prev - 1, 1))
+                }
               >
                 <ChevronLeft className="h-4 w-4 mr-1" /> Back
               </Button>
