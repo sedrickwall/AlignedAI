@@ -1,0 +1,47 @@
+14:44:52.974 Running build in Washington, D.C., USA (East) – iad1
+14:44:52.975 Build machine configuration: 2 cores, 8 GB
+14:44:53.137 Cloning github.com/sedrickwall/AlignedAI (Branch: main, Commit: c74c581)
+14:44:53.523 Cloning completed: 385.000ms
+14:44:54.447 Restored build cache from previous deployment (8MkF9iEKk7cV1upTfoCnkqXkC7p9)
+14:44:55.217 Running "vercel build"
+14:44:55.632 Vercel CLI 50.0.0
+14:44:55.771 Detected OpenTelemetry dependency: @opentelemetry/api@1.9.0, which meets the minimum version requirement of 1.7.0
+14:44:56.389 Installing dependencies...
+14:44:58.291 
+14:44:58.292 up to date in 1s
+14:44:58.292 
+14:44:58.293 87 packages are looking for funding
+14:44:58.293   run `npm fund` for details
+14:44:58.936 
+14:44:58.936 > rest-express@1.0.0 vite-build
+14:44:58.936 > vite build
+14:44:58.936 
+14:44:59.261 [36mvite v5.4.20 [32mbuilding for production...[36m[39m
+14:44:59.321 transforming...
+14:45:00.581 
+14:45:00.581 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+14:45:04.877 [32m✓[39m 1756 modules transformed.
+14:45:05.352 rendering chunks...
+14:45:05.368 computing gzip size...
+14:45:05.395 [2m../dist/public/[22m[32mindex.html                 [39m[1m[2m  2.51 kB[22m[1m[22m[2m │ gzip:   0.91 kB[22m
+14:45:05.396 [2m../dist/public/[22m[2massets/[22m[35mindex-CuM6t_OQ.css  [39m[1m[2m 75.68 kB[22m[1m[22m[2m │ gzip:  12.40 kB[22m
+14:45:05.399 [2m../dist/public/[22m[2massets/[22m[36mindex-D7iDv9AW.js   [39m[1m[33m840.65 kB[39m[22m[2m │ gzip: 224.55 kB[22m
+14:45:05.399 [32m✓ built in 6.11s[39m
+14:45:05.400 [33m
+14:45:05.400 (!) Some chunks are larger than 500 kB after minification. Consider:
+14:45:05.400 - Using dynamic import() to code-split the application
+14:45:05.401 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+14:45:05.401 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+14:45:05.710 Using TypeScript 5.6.3 (local user-provided)
+14:45:15.612 Using TypeScript 5.6.3 (local user-provided)
+14:45:20.021 Using TypeScript 5.6.3 (local user-provided)
+14:45:23.759 Using TypeScript 5.6.3 (local user-provided)
+14:45:27.597 Using TypeScript 5.6.3 (local user-provided)
+14:45:27.937 api/evaluate-task.ts(4,27): error TS2307: Cannot find module './ai/_lib/initAdmin' or its corresponding type declarations.
+14:45:27.938 
+14:45:28.066 Using TypeScript 5.6.3 (local user-provided)
+14:45:31.541 Using TypeScript 5.6.3 (local user-provided)
+14:45:35.101 Build Completed in /vercel/output [39s]
+14:45:35.968 Deploying outputs...
+14:45:47.940 Deployment completed
+14:45:48.582 Creating build cache...
