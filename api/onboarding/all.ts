@@ -6,21 +6,40 @@ initAdmin();
 const db = getFirestore();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { uid } = req.query;
-  if (!uid) return res.status(400).json({ error: "Missing uid" });
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
   try {
-    const collections = ["identity", "purpose", "seasonPillars", "vision", "capacity"];
+    const { getAuth } = await import("firebase-admin/auth");
+    const token = authHeader.split("Bearer ")[1];
+    const decoded = await getAuth().verifyIdToken(token);
+    const uid = decoded.uid;
 
-    const results: Record<string, any> = {};
+    const snap = await db.collection("onboarding").doc(uid).get();
 
-    for (const col of collections) {
-      const snap = await db.collection(col).doc(uid as string).get();
-      results[col] = snap.exists ? snap.data() : col === "seasonPillars" ? [] : null;
+    if (!snap.exists) {
+      return res.json({
+        identity: null,
+        purpose: null,
+        seasonPillars: [],
+        vision: null,
+        capacity: null,
+      });
     }
 
-    return res.json(results);
+    const data = snap.data() ?? {};
+
+    return res.json({
+      identity: data.identity ?? null,
+      purpose: data.purpose ?? null,
+      seasonPillars: data.seasonPillars ?? [],
+      vision: data.vision ?? null,
+      capacity: data.capacity ?? null,
+    });
   } catch (err: any) {
+    console.error("Onboarding all error:", err);
     return res.status(500).json({ error: err.message });
   }
 }

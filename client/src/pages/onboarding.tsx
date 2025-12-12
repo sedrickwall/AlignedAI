@@ -30,6 +30,7 @@ import {
 
 import {
   getOnboardingProgress,
+  getOnboardingAll,
   updateOnboardingProgress,
   markOnboardingComplete,
   type FirestoreOnboardingProgress,
@@ -205,7 +206,7 @@ function PillarsStep({ data, onChange }: any) {
 
   const addPillar = () => {
     if (!newPillar.trim()) return;
-    const pillar: SeasonPillar = {
+    const pillar = {
       id: crypto.randomUUID(),
       name: newPillar.trim(),
       description: "",
@@ -236,7 +237,7 @@ function PillarsStep({ data, onChange }: any) {
             </div>
 
             <Textarea
-              value={pillar.description}
+              value={pillar.description ?? ""}
               onChange={(e) =>
                 onChange(
                   data.map((p: any) =>
@@ -251,7 +252,7 @@ function PillarsStep({ data, onChange }: any) {
             <Input
               type="number"
               placeholder="Weekly hours"
-              value={pillar.weeklyHoursBudget}
+              value={pillar.weeklyHoursBudget ?? 0}
               onChange={(e) =>
                 onChange(
                   data.map((p: any) =>
@@ -424,7 +425,7 @@ export default function Onboarding() {
   const { data, isLoading } = useQuery({
     queryKey: ["onboarding-all", user?.uid],
     enabled: !!user,
-    queryFn: async () => apiRequest("GET", "/api/onboarding/all"),
+    queryFn: async () => getOnboardingAll(user!.uid),
   });
 
   // ---------------------------------------
