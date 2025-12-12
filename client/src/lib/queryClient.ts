@@ -1,17 +1,41 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 async function getFirebaseToken(): Promise<string | null> {
-  const user = auth.currentUser;
-  if (user) {
+  // If currentUser exists, get token immediately
+  if (auth.currentUser) {
     try {
-      return await user.getIdToken();
+      return await auth.currentUser.getIdToken(true); // force refresh
     } catch (error) {
       console.error("Failed to get Firebase ID token:", error);
       return null;
     }
   }
-  return null;
+  
+  // Wait for auth state to be ready (handles race condition)
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      unsubscribe();
+      if (user) {
+        try {
+          const token = await user.getIdToken(true);
+          resolve(token);
+        } catch (error) {
+          console.error("Failed to get Firebase ID token:", error);
+          resolve(null);
+        }
+      } else {
+        resolve(null);
+      }
+    });
+    
+    // Timeout after 5 seconds to prevent hanging
+    setTimeout(() => {
+      unsubscribe();
+      resolve(null);
+    }, 5000);
+  });
 }
 
 async function throwIfResNotOk(res: Response) {
