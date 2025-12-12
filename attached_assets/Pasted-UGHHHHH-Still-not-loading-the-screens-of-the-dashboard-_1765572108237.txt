@@ -1,0 +1,65 @@
+UGHHHHH Still not loading the screens of the dashboard and home 
+
+
+close @ index-D7iDv9AW.js:1517Understand this error
+index-D7iDv9AW.js:3247 [Query] Fetching: /api/ai/prioritize Token: present
+index-D7iDv9AW.js:3247 [Query] Fetching: /api/daily Token: present
+index-D7iDv9AW.js:3247 [Query] Fetching: /api/reflections Token: present
+index-D7iDv9AW.js:3247 [Query] Fetching: /api/weekly Token: present
+/api/ai/prioritize:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+
+Dec 12 14:39:57.54
+GET
+500
+aligned-ijhys257e-sedrick-walls-projects.vercel.app
+/api/weekly
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/weekly.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:39:57.54
+GET
+500
+aligned-ijhys257e-sedrick-walls-projects.vercel.app
+/api/daily
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/daily.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:39:57.54
+GET
+500
+aligned-ijhys257e-sedrick-walls-projects.vercel.app
+/api/reflections
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/reflections.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:39:57.52
+GET
+500
+aligned-ijhys257e-sedrick-walls-projects.vercel.app
+/api/ai/prioritize
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/ai/prioritize.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:18:23.11
+GET
+500
+aligned-4pot6kcph-sedrick-walls-projects.vercel.app
+/api/ai/prioritize
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/ai/prioritize.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:18:23.10
+GET
+500
+aligned-4pot6kcph-sedrick-walls-projects.vercel.app
+/api/daily
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/daily.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:18:23.10
+GET
+500
+aligned-4pot6kcph-sedrick-walls-projects.vercel.app
+/api/reflections
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/reflections.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+Dec 12 14:18:23.10
+GET
+500
+aligned-4pot6kcph-sedrick-walls-projects.vercel.app
+/api/weekly
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/var/task/api/ai/_lib/initAdmin' imported from /var/task/api/weekly.js at finalizeResolution (node:internal/modules/esm/resolve:280:11) at moduleResolve (node:internal/modules/esm/resolve:870:10) at moduleResolveWithNodePath (node:internal/modules/esm/resolve:996:14) at defaultResolve (node:internal/modules/esm/resolve:1039:79) at #cachedDefaultResolve (node:internal/modules/esm/loader:757:20) at ModuleLoader.resolve (node:internal/modules/esm/loader:734:38) at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:317:38) at #link (node:internal/modules/esm/module_job:208:49) at process.processTicksAndRejections (node:internal/process/task_queues:105:5) { code: 'ERR_MODULE_NOT_FOUND', url: 'file:///var/task/api/ai/_lib/initAdmin' } Node.js process exited with exit status: 1. The logs above can help with debugging the issue.
+index-D7iDv9AW.js:3247 [Query] Response: /api/ai/prioritize 500
+/api/weekly:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+index-D7iDv9AW.js:3247 [Query] Response: /api/weekly 500
+/api/daily:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+index-D7iDv9AW.js:3247 [Query] Response: /api/daily 500
+/api/reflections:1  Failed to load resource: the server responded with a status of 500 ()Understand this error
+index-D7iDv9AW.js:3247 [Query] Response: /api/reflections 500
