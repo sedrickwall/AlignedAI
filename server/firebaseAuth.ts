@@ -66,22 +66,27 @@ export const firebaseAuthMiddleware: RequestHandler = async (req: any, res, next
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("[Auth] No token provided");
     return res.status(401).json({ message: "Unauthorized - No token provided" });
   }
   
   const idToken = authHeader.slice(7);
   
   if (!idToken) {
+    console.log("[Auth] Empty token");
     return res.status(401).json({ message: "Unauthorized - Empty token" });
   }
   
   const auth = getFirebaseAdmin();
   if (!auth) {
+    console.error("[Auth] Firebase Admin not initialized - FIREBASE_ADMIN_KEY may be missing");
     return res.status(500).json({ message: "Authentication service unavailable" });
   }
   
   try {
+    console.log("[Auth] Verifying token...");
     const decodedToken = await auth.verifyIdToken(idToken);
+    console.log("[Auth] Token verified for user:", decodedToken.uid);
     
     // Upsert user in database so profile data can be saved
     try {
@@ -93,7 +98,7 @@ export const firebaseAuthMiddleware: RequestHandler = async (req: any, res, next
         profileImageUrl: decodedToken.picture || null,
       });
     } catch (upsertError: any) {
-      console.error("Failed to upsert user:", upsertError.message);
+      console.error("[Auth] Failed to upsert user:", upsertError.message);
       // Continue anyway - user verification succeeded
     }
     
@@ -105,7 +110,7 @@ export const firebaseAuthMiddleware: RequestHandler = async (req: any, res, next
     };
     return next();
   } catch (error: any) {
-    console.error("Token verification failed:", error.message);
+    console.error("[Auth] Token verification failed:", error.message);
     return res.status(401).json({ message: "Unauthorized - Invalid token" });
   }
 };
