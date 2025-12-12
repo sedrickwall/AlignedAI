@@ -1,0 +1,103 @@
+✅ STEP 1 — Identify the broken API call from Home.tsx
+
+In your Home screen, you likely have something like:
+
+const { data, isError } = useQuery({
+  queryKey: ["/api/home"],
+  queryFn: () => apiRequest("GET", "/api/home"),
+});
+
+
+or:
+
+apiRequest("GET", "/api/profile/...") 
+
+
+The screenshot says after onboarding completes, the redirect goes to /.
+
+And then the Home screen loads → and fires an API request → 500 → UI displays:
+
+Failed to load data.
+
+This means the issue is NOT onboarding anymore — it's the backend route that Home.tsx is expecting.
+
+✅ STEP 2 — Confirm what Home is requesting
+
+I need to see your Home.tsx (show me the file).
+BUT I already know the problem pattern:
+
+Case 1 — Your Home requests /api/home but that route does not exist
+
+→ 404 or 500
+→ Home shows “Failed to load data.”
+
+Case 2 — The route exists, but Firebase Admin throws:
+Error: Missing or insufficient permissions
+Error: Invalid ID token
+Error: user.uid undefined
+
+
+This happens when:
+
+❌ The API route is missing authorization decoding
+❌ You didn't include the Bearer token in the request
+❌ Vercel function cannot read req.headers.authorization
+✅ STEP 3 — Quick test to confirm
+
+Open your browser devtools → Network → Refresh home page.
+
+Look at the failing API call.
+
+Tell me the URL of the failing request.
+
+It will be something like:
+
+https://aligned-xxxx.vercel.app/api/...   → 500
+
+
+Copy/paste the URL and response body.
+
+🔥 STEP 4 — The fix (depending on which one is wrong)
+Fix 1 — Missing Bearer Token (most common)
+
+Check your apiRequest helper:
+
+const token = await auth.currentUser?.getIdToken();
+
+
+Ensure your request includes:
+
+Authorization: `Bearer ${token}`,
+
+
+If this is missing → every API route requiring auth returns 500.
+
+Fix 2 — Backend does not decode user → causes crash
+
+Every authenticated API route MUST use this pattern:
+
+const authHeader = req.headers.authorization;
+if (!authHeader?.startsWith("Bearer ")) {
+  return res.status(401).json({ error: "Unauthorized" });
+}
+
+const token = authHeader.split("Bearer ")[1];
+const decoded = await getAuth().verifyIdToken(token);
+const uid = decoded.uid;
+
+
+If any route (e.g., /api/home or /api/profile/*) is missing this → 500 error.
+
+Fix 3 — The Home route doesn’t exist
+
+If Home.tsx calls:
+
+/api/home
+
+
+You MUST create:
+
+/api/home.ts
+
+
+Otherwise → 500.
