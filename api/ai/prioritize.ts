@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import * as admin from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
+import { initAdmin } from "./_lib/initAdmin";
+
+initAdmin();
 
 // Initialize Firebase Admin inline
 if (!admin.apps.length) {

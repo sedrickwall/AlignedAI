@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { evaluateTaskAgainstMission } from "../server/taskAnalyzer";
 import type { MissionContext } from "../shared/taskEval";
+import { initAdmin } from "./ai/_lib/initAdmin";
+
+initAdmin();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

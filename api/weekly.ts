@@ -2,6 +2,9 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import * as admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { initAdmin } from "./ai/_lib/initAdmin";
+
+initAdmin();
 
 // Initialize Firebase Admin inline
 if (!admin.apps.length) {
