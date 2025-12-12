@@ -64,12 +64,6 @@ function AuthenticatedRoutes() {
   const isOnboardingPage = location === "/onboarding";
 
   // -------- Gating Logic --------
-  // If onboarding complete and on onboarding page, redirect to home
-  if (onboardingComplete && isOnboardingPage) {
-    return <Redirect to="/" />;
-  }
-  
-  // If onboarding not complete and not on onboarding page, redirect to onboarding
   if (!onboardingComplete && !isOnboardingPage) {
     return <Redirect to="/onboarding" />;
   }

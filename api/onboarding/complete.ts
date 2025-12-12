@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore, doc, updateDoc, serverTimestamp } from "firebase-admin/firestore";
 import { initAdmin } from "../utils/initAdmin";
 
 initAdmin();
 const db = getFirestore();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
+  if (r {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.json({ success: true });
   } catch (err: any) {
-    console.error("Onboarding complete error:", err);
+    console.error("Onboarding complete error:", err);y) {
     return res.status(500).json({ error: err.message });
   }
 }
