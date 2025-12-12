@@ -1,7 +1,7 @@
 // client/src/App.tsx
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,7 @@ import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import NotFound from "@/pages/not-found";
 
-import type { FirestoreOnboardingProgress } from "@/lib/onboardingFirebase";
+import { getOnboardingProgress, type FirestoreOnboardingProgress } from "@/lib/onboardingFirebase";
 
 // -----------------------------------------------------
 // LOADING SCREEN
@@ -43,17 +43,16 @@ function AuthenticatedRoutes() {
   const [location] = useLocation();
   const { user } = useAuth(); // Firebase user
 
-  // -------- Load onboarding progress from API --------
+  // -------- Load onboarding progress directly from Firestore --------
   const { data: progress, isLoading } = useQuery<
     FirestoreOnboardingProgress
   >({
-    queryKey: ["onboarding-progress"],
+    queryKey: ["onboarding-progress", user?.uid],
     enabled: !!user,
     refetchOnMount: "always",
     staleTime: 0,
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/onboarding/get");
-      return res.json();
+      return await getOnboardingProgress(user!.uid);
     },
   });
 
