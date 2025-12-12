@@ -1,0 +1,192 @@
+Translation (plain English)
+
+Your serverless functions are importing a file that does not exist in the deployed bundle.
+
+Because of that:
+
+❌ Firebase Admin never initializes
+
+❌ getAuth().verifyIdToken() throws
+
+❌ Every API route returns 500
+
+❌ Home dashboard can never load
+
+❌ Onboarding completion redirect appears “broken” but isn’t
+
+🔴 WHY THIS IS HAPPENING
+
+Your API files contain imports like:
+
+import { initAdmin } from "../utils/initAdmin";
+
+
+But on Vercel, the runtime expects:
+
+/api/utils/initAdmin.js
+
+One of these is true (usually #1 or #2):
+
+api/utils/initAdmin.ts does not exist
+
+File exists locally but is not committed to Git
+
+Folder name casing mismatch (Utils vs utils)
+
+Relative path is wrong (../utils vs ./utils)
+
+Vercel is compiling to ESM and cannot resolve extensionless imports
+
+The error path proves it:
+
+/var/task/api/utils/initAdmin   ❌ NOT FOUND
+
+✅ THE FIX (DO THIS EXACTLY)
+✅ 1. Correct file location (required)
+
+Your repo must contain this exact file:
+
+/api/utils/initAdmin.ts
+
+
+NOT:
+
+/utils/initAdmin.ts
+
+/server/utils/initAdmin.ts
+
+/api/initAdmin.ts
+
+✅ Correct structure:
+
+api/
+  utils/
+    initAdmin.ts
+  daily.ts
+  weekly.ts
+  reflections.ts
+  ai/
+    prioritize.ts
+
+✅ 2. Fix imports in ALL API files
+
+Replace every admin import with this:
+
+import { initAdmin } from "./utils/initAdmin";
+
+
+❌ Do NOT use:
+
+../utils/initAdmin
+../../utils/initAdmin
+
+
+Because Vercel resolves from /api/* root.
+
+✅ 3. Make initAdmin.ts ESM-safe (important)
+
+Use this exact version:
+
+// api/utils/initAdmin.ts
+import * as admin from "firebase-admin";
+
+export function initAdmin() {
+  if (admin.apps.length) return;
+
+  const key = process.env.FIREBASE_ADMIN_KEY;
+  if (!key) {
+    throw new Error("FIREBASE_ADMIN_KEY is missing");
+  }
+
+  let serviceAccount: any;
+
+  if (key.trim().startsWith("{")) {
+    serviceAccount = JSON.parse(key);
+  } else {
+    const decoded = Buffer.from(key, "base64").toString("utf-8");
+    serviceAccount = JSON.parse(decoded);
+  }
+
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key =
+      serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+✅ 4. Redeploy (not restart)
+git add .
+git commit -m "Fix initAdmin import path"
+git push
+
+
+Then wait for a full Vercel redeploy.
+
+🧠 Why ALL endpoints failed (important insight)
+
+You noticed:
+
+/api/ai/prioritize doesn’t hit Firestore but still fails
+
+That’s because the import fails before runtime:
+
+import { initAdmin } from "./utils/initAdmin"; // 💥 module not found
+
+
+The function crashes before this line ever runs:
+
+await getAuth().verifyIdToken(token);
+
+
+So Firebase Auth was never the real issue — the module load failed.
+
+🚫 Firestore Rules Are NOT the Issue
+
+Your rules are fine for client SDK usage.
+
+They do not apply to:
+
+Firebase Admin SDK
+
+Serverless functions
+
+Vercel APIs
+
+Admin SDK bypasses rules entirely.
+
+✅ What will happen after the fix
+
+Once initAdmin resolves correctly:
+
+✅ /api/ai/prioritize returns JSON
+
+✅ /api/daily loads
+
+✅ /api/weekly loads
+
+✅ /api/reflections loads
+
+✅ Home dashboard renders
+
+✅ Onboarding completion redirect works
+
+🔍 Quick sanity check after deploy
+
+Hit this URL in browser (with auth token):
+
+/api/ai/prioritize
+
+
+If you get:
+
+{
+  "suggestion": "...",
+  "reasoning": "...",
+  "focusPillar": "Faith"
+}
+
+
+You are officially unblocked.
