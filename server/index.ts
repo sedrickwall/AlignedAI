@@ -32,6 +32,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Health check for Cloud Run / load balancers
+app.get("/health", (_req: Request, res: Response) => res.send("ok"));
+
 declare module "http" {
   interface IncomingMessage {
     rawBody?: unknown;
@@ -42,7 +45,7 @@ declare module "http" {
 // 🧠 Task Evaluation API
 // ------------------------------------------------------
 
-app.post("/api/evaluate-task", async (req, res) => {
+app.post("/api/evaluate-task", async (req: Request, res: Response) => {
   try {
     const { task, mission } = req.body as {
       task: string;
@@ -83,10 +86,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const path = req.path;
   let captured: any;
 
-  const original = res.json;
-  res.json = function (body, ...args) {
+  const original = res.json.bind(res);
+  // replace json while keeping types explicit to avoid implicit any errors
+  (res as any).json = function (body: unknown, ...args: unknown[]) {
     captured = body;
-    return original.apply(res, [body, ...args]);
+    // avoid spreading an unknown-typed rest directly (TS2556) by using apply and concat
+    return (original as any).apply(null, [body].concat(args as any));
   };
 
   res.on("finish", () => {
@@ -119,7 +124,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     await setupVite(httpServer, app);
   }
 
-  const port = Number(process.env.PORT || 5000);
+  const port = Number(process.env.PORT || 8080);
 
   httpServer.listen(
     {
