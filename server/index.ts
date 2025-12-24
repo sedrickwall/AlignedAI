@@ -105,33 +105,49 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // ------------------------------------------------------
-// 🚀 Server Bootstrapping
+// 🚀 Server Bootstrapping (Cloud Run Safe)
 // ------------------------------------------------------
 
 (async () => {
-  await registerRoutes(httpServer, app);
+  try {
+    const port = Number(process.env.PORT || 8080);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || 500;
-    res.status(status).json({ message: err.message || "Internal Server Error" });
-    throw err;
-  });
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      },
+      async () => {
+        log(`Serving on port ${port}`);
 
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite.js"); // FIXED
-    await setupVite(httpServer, app);
+        // 🚨 Anything that can fail goes AFTER listen
+        try {
+          await registerRoutes(httpServer, app);
+
+          app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+            const status = err.status || 500;
+            res.status(status).json({
+              message: err.message || "Internal Server Error",
+            });
+          });
+
+          if (process.env.NODE_ENV === "production") {
+            serveStatic(app);
+          } else {
+            const { setupVite } = await import("./vite.js");
+            await setupVite(httpServer, app);
+          }
+
+          log("Routes registered successfully");
+        } catch (err) {
+          console.error("Startup task failed:", err);
+        }
+      }
+    );
+  } catch (err) {
+    console.error("Fatal startup error:", err);
+    process.exit(1);
   }
-
-  const port = Number(process.env.PORT || 8080);
-
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => log(`Serving on port ${port}`)
-  );
 })();
+
